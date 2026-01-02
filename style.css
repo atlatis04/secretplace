@@ -691,6 +691,17 @@ textarea {
 
 
 /* Geolocation Button */
+#geo-btn {
+    position: absolute;
+    bottom: 30px;
+    bottom: calc(30px + env(safe-area-inset-bottom));
+    right: 20px;
+    z-index: 1000;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+}
+
 #geo-btn:hover {
     background: var(--primary);
     color: white;
