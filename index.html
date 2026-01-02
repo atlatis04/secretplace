@@ -177,6 +177,9 @@
           <p class="provider" id="user-info-provider">이메일 로그인</p>
         </div>
       </div>
+      <button id="change-password-btn" class="secondary-btn"
+        style="width: 100%; margin-top: 16px; border-radius: 8px; border: none; padding: 10px; font-weight: 700; cursor: pointer; background: rgba(59, 130, 246, 0.2); color: #60a5fa;">비밀번호
+        변경</button>
       <button id="logout-btn" class="danger-btn"
         style="width: 100%; margin-top: 16px; border-radius: 8px; border: none; padding: 10px; font-weight: 700; cursor: pointer;">로그아웃</button>
     </div>
@@ -200,6 +203,40 @@
 
     <!-- 토스트 메시지 -->
     <div id="toast" class="toast hidden"></div>
+
+    <!-- Password Change Modal -->
+    <div id="password-change-overlay" class="modal-overlay hidden" style="z-index: 4000;">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>비밀번호 변경</h2>
+          <button id="close-password-change" class="close-btn">&times;</button>
+        </div>
+        <form id="password-change-form">
+          <div id="password-change-msg" class="message-container hidden"></div>
+
+          <div class="form-group">
+            <label for="current-password">현재 비밀번호</label>
+            <div class="input-wrapper">
+              <input type="password" id="current-password" required placeholder="현재 사용 중인 비밀번호">
+              <span id="current-password-status" class="status-indicator"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="new-password">새 비밀번호</label>
+            <input type="password" id="new-password" required placeholder="새로운 비밀번호 (6자 이상)">
+          </div>
+          <div class="form-group">
+            <label for="confirm-password">새 비밀번호 확인</label>
+            <input type="password" id="confirm-password" required placeholder="새로운 비밀번호 확인">
+          </div>
+          <div class="modal-footer">
+            <button type="submit" id="submit-password-change" class="primary-btn">변경하기</button>
+            <button type="button" id="cancel-password-change" class="danger-btn"
+              style="background: #334155; color: white;">취소</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="./main.js"></script>

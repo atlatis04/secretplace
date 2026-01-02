@@ -65,6 +65,19 @@ const userAvatarInitial = document.getElementById('user-avatar-initial');
 const logoutBtn = document.getElementById('logout-btn');
 const geoBtn = document.getElementById('geo-btn');
 
+// Password Change Elements
+const changePasswordBtn = document.getElementById('change-password-btn');
+const passwordChangeOverlay = document.getElementById('password-change-overlay');
+const closePasswordChange = document.getElementById('close-password-change');
+const cancelPasswordChange = document.getElementById('cancel-password-change');
+const passwordChangeForm = document.getElementById('password-change-form');
+const currentPasswordInput = document.getElementById('current-password');
+
+const newPasswordInput = document.getElementById('new-password');
+const confirmPasswordInput = document.getElementById('confirm-password');
+const passwordChangeMsg = document.getElementById('password-change-msg');
+const currentPasswordStatus = document.getElementById('current-password-status');
+
 // Lightbox Elements
 const lightbox = document.getElementById('lightbox');
 const lightboxImg = document.getElementById('lightbox-img');
@@ -624,6 +637,94 @@ authForm.onsubmit = async (e) => {
             authOverlay.classList.add('hidden');
         }
         authForm.reset();
+    }
+};
+
+// Password Change Logic
+// Password Change Logic
+function setPasswordMsg(msg, type = 'error') {
+    passwordChangeMsg.className = `message-container ${type}`;
+    passwordChangeMsg.textContent = msg;
+    passwordChangeMsg.classList.remove('hidden');
+}
+
+function clearPasswordMsg() {
+    passwordChangeMsg.classList.add('hidden');
+    passwordChangeMsg.textContent = '';
+}
+
+changePasswordBtn.onclick = () => {
+    passwordChangeForm.reset();
+    clearPasswordMsg();
+    currentPasswordStatus.className = 'status-indicator';
+    passwordChangeOverlay.classList.remove('hidden');
+};
+
+const closePasswordModal = () => passwordChangeOverlay.classList.add('hidden');
+closePasswordChange.onclick = closePasswordModal;
+cancelPasswordChange.onclick = closePasswordModal;
+
+// Real-time Current Password Verification
+currentPasswordInput.onblur = async () => {
+    const currentPassword = currentPasswordInput.value;
+    if (!currentPassword) return;
+
+    currentPasswordStatus.className = 'status-indicator'; // Reset
+
+    const { error } = await supabase.auth.signInWithPassword({
+        email: currentUser.email,
+        password: currentPassword
+    });
+
+    if (error) {
+        currentPasswordStatus.classList.add('error');
+    } else {
+        currentPasswordStatus.classList.add('success');
+    }
+};
+
+passwordChangeForm.onsubmit = async (e) => {
+    e.preventDefault();
+    clearPasswordMsg();
+
+    const currentPassword = currentPasswordInput.value;
+    const newPassword = newPasswordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
+
+    // 1. Check if new passwords match
+    if (newPassword !== confirmPassword) {
+        setPasswordMsg('새 비밀번호가 일치하지 않습니다.');
+        return;
+    }
+
+    // 2. Check password length
+    if (newPassword.length < 6) {
+        setPasswordMsg('비밀번호는 6자 이상이어야 합니다.');
+        return;
+    }
+
+    // 3. Verify current password (Final check)
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: currentUser.email,
+        password: currentPassword
+    });
+
+    if (verifyError) {
+        setPasswordMsg('현재 비밀번호가 일치하지 않습니다.');
+        currentPasswordStatus.className = 'status-indicator error';
+        return;
+    }
+
+    // 4. Update password
+    const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+    });
+
+    if (updateError) {
+        setPasswordMsg('비밀번호 변경 실패: ' + updateError.message);
+    } else {
+        showToast('비밀번호가 성공적으로 변경되었습니다.');
+        closePasswordModal();
     }
 };
 

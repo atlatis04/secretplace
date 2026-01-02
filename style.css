@@ -791,6 +791,51 @@ textarea {
     border-left: 3px solid #3b82f6;
 }
 
+/* Modal Enhancements */
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.status-indicator {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+}
+
+.status-indicator.success::before {
+    content: "✅";
+    color: #10b981;
+}
+
+.status-indicator.error::before {
+    content: "❌";
+    color: #ef4444;
+}
+
+.message-container {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.message-container.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.message-container.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
 /* Sidebar Star Rating UI */
 .sidebar-stars {
     display: flex;
