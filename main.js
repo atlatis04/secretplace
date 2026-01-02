@@ -183,10 +183,12 @@ function renderFilteredList(placesToRender) {
 // Add Marker
 function addMarkerToMap(place) {
     const icon = L.divIcon({
-        className: 'custom-div-icon',
-        html: `<div class="marker-pin" style="background: ${place.color}"></div>`,
-        iconSize: [30, 42],
-        iconAnchor: [15, 42]
+        className: 'custom-pin-icon',
+        html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); transform: translate(-50%, -50%); cursor: pointer;">
+                <path fill="${place.color}" d="M12 0C7.58 0 4 3.58 4 8c0 5.25 7 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
+               </svg>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
     });
 
     const marker = L.marker([place.latitude, place.longitude], { icon }).addTo(map);
@@ -745,7 +747,7 @@ geoBtn.onclick = () => {
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const { latitude, longitude } = position.coords;
-            map.flyTo([latitude, longitude], 18);
+            map.flyTo([latitude, longitude], 16);
             showToast('현재 위치로 이동했습니다.');
         },
         (err) => {

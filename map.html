@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secret Place | 나만의 감성 지도 기록</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div id="app">
+    <div id="map"></div>
+
+    <div class="map-controls-repositioned">
+      <button id="auth-toggle-btn" class="glass-button square" title="로그인/로그아웃">
+        <span class="icon">👤</span>
+      </button>
+      <button id="list-toggle-btn" class="glass-button square" title="목록 보기">
+        <span class="icon">☰</span>
+      </button>
+    </div>
+
+    <!-- 리스트 사이드바 -->
+    <aside id="sidebar" class="sidebar hidden">
+      <div class="sidebar-header">
+        <h2>장소 목록</h2>
+        <button id="close-sidebar" class="close-btn">&times;</button>
+      </div>
+      <div class="sidebar-search">
+        <input type="text" id="place-filter" placeholder="장소명 또는 지역 검색...">
+        <div class="color-filter-group" id="color-filter-group">
+          <button class="color-filter-dot active" data-color="all" title="전체"></button>
+          <button class="color-filter-dot" data-color="#ef4444" style="background:#ef4444"></button>
+          <button class="color-filter-dot" data-color="#3b82f6" style="background:#3b82f6"></button>
+          <button class="color-filter-dot" data-color="#10b981" style="background:#10b981"></button>
+          <button class="color-filter-dot" data-color="#f59e0b" style="background:#f59e0b"></button>
+          <button class="color-filter-dot" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+        </div>
+      </div>
+      <div id="place-list" class="place-list">
+        <div id="place-list" class="place-list">
+          <!-- 리스트 항목들이 동적으로 추가됨 -->
+        </div>
+    </aside>
+
+    <!-- 입력/수정 모달 -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="modal-title">새 장소 기록</h2>
+          <button id="close-modal" class="close-btn">&times;</button>
+        </div>
+        <form id="place-form">
+          <input type="hidden" id="place-id">
+          <input type="hidden" id="place-lat">
+          <input type="hidden" id="place-lng">
+
+          <div class="form-group">
+            <label for="place-name">장소명</label>
+            <input type="text" id="place-name" required placeholder="장소 이름을 입력하세요">
+          </div>
+          <div class="form-group">
+            <label for="place-address">위치 (주소)</label>
+            <input type="text" id="place-address" placeholder="지도 클릭 시 자동으로 입력됩니다">
+          </div>
+
+          <div class="form-group">
+            <label for="place-comment">코멘트</label>
+            <textarea id="place-comment" rows="2" placeholder="이 장소에 대한 기록을 남겨보세요"></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="visit-date">방문 날짜</label>
+              <input type="date" id="visit-date">
+            </div>
+            <div class="form-group">
+              <label>평점</label>
+              <div class="star-rating" id="star-rating">
+                <span class="star" data-value="1">★</span>
+                <span class="star" data-value="2">★</span>
+                <span class="star" data-value="3">★</span>
+                <span class="star" data-value="4">★</span>
+                <span class="star" data-value="5">★</span>
+                <input type="hidden" id="rating" value="5">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="pin-color">핀 색상</label>
+            <div class="color-picker" id="color-picker">
+              <input type="radio" name="color" value="#ef4444" id="c1" checked><label for="c1"
+                style="background:#ef4444"></label>
+              <input type="radio" name="color" value="#3b82f6" id="c2"><label for="c2"
+                style="background:#3b82f6"></label>
+              <input type="radio" name="color" value="#10b981" id="c3"><label for="c3"
+                style="background:#10b981"></label>
+              <input type="radio" name="color" value="#f59e0b" id="c4"><label for="c4"
+                style="background:#f59e0b"></label>
+              <input type="radio" name="color" value="#8b5cf6" id="c5"><label for="c5"
+                style="background:#8b5cf6"></label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>사진 첨부 (기기에서 선택/촬영)</label>
+            <input type="file" id="photo-input" accept="image/*" multiple class="hidden">
+            <div class="photo-upload-container">
+              <button type="button" id="photo-add-btn" class="glass-button secondary-btn">
+                <span class="icon">📷</span> 사진 추가
+              </button>
+              <div id="photo-preview-list" class="photo-preview-list"></div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="submit" id="save-btn" class="primary-btn">저장하기</button>
+            <button type="button" id="delete-btn" class="danger-btn hidden">삭제하기</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Auth Modal (Gatekeeper) -->
+    <div id="auth-overlay" class="modal-overlay"> <!-- Start shown to block map -->
+      <div class="modal auth-modal">
+        <div class="modal-header" style="justify-content: center;">
+          <h2 id="auth-title">Secret Place 시작하기</h2>
+        </div>
+        <p style="text-align: center; font-size: 13px; color: var(--text-gray); margin-bottom: 20px;">
+          지도를 이용하려면 로그인이 필요합니다.
+        </p>
+        <form id="auth-form">
+          <div class="form-group">
+            <label for="auth-email">이메일</label>
+            <input type="email" id="auth-email" required placeholder="example@email.com"
+              style="width: 100%; background: #0f172a; border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 16px; color: white;">
+          </div>
+          <div class="form-group">
+            <label for="auth-password">비밀번호</label>
+            <input type="password" id="auth-password" required placeholder="••••••••"
+              style="width: 100%; background: #0f172a; border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 16px; color: white;">
+          </div>
+          <div class="modal-footer" style="flex-direction: column; gap: 8px;">
+            <button type="submit" id="auth-submit-btn" class="primary-btn" style="width: 100%;">로그인</button>
+            <button type="button" id="auth-switch-btn" class="secondary-btn"
+              style="width: 100%; justify-content: center;">계정이 없으신가요? 회원가입</button>
+          </div>
+        </form>
+
+        <div class="social-divider">
+          <span>또는 소셜 로그인</span>
+        </div>
+
+        <div class="social-auth-group">
+          <button id="auth-naver" class="social-btn naver disabled" title="현재 준비 중인 기능입니다.">
+            <span class="icon">N</span> 네이버로 시작하기 (준비 중)
+          </button>
+          <button id="auth-kakao" class="social-btn kakao disabled" title="현재 준비 중인 기능입니다.">
+            <span class="icon">K</span> 카카오로 시작하기 (준비 중)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Info Dropdown -->
+    <div id="user-info-panel" class="user-info-panel hidden">
+      <div class="user-card">
+        <div class="user-avatar" id="user-avatar-initial">U</div>
+        <div class="user-details">
+          <p id="user-info-email" class="email">user@email.com</p>
+          <p class="provider" id="user-info-provider">이메일 로그인</p>
+        </div>
+      </div>
+      <button onclick="window.location.href='/'" class="secondary-btn"
+        style="width: 100%; margin-top: 16px; border-radius: 8px; border: none; padding: 10px; font-weight: 700; cursor: pointer; background: rgba(255, 255, 255, 0.1); color: var(--text-gray);">홈으로</button>
+      <button id="change-password-btn" class="secondary-btn"
+        style="width: 100%; margin-top: 8px; border-radius: 8px; border: none; padding: 10px; font-weight: 700; cursor: pointer; background: rgba(59, 130, 246, 0.2); color: #60a5fa;">비밀번호
+        변경</button>
+      <button id="logout-btn" class="danger-btn"
+        style="width: 100%; margin-top: 16px; border-radius: 8px; border: none; padding: 10px; font-weight: 700; cursor: pointer;">로그아웃</button>
+    </div>
+
+    <!-- Geolocation Button -->
+    <button id="geo-btn" class="glass-button square" title="현재 위치">
+      <span class="icon">📍</span>
+    </button>
+
+    <!-- Lightbox Modal -->
+    <div id="lightbox" class="modal-overlay hidden" style="z-index: 3001;">
+      <div class="lightbox-content">
+        <button id="prev-lightbox" class="nav-btn prev">&lsaquo;</button>
+        <img id="lightbox-img" src="" alt="Detail View">
+        <button id="next-lightbox" class="nav-btn next">&rsaquo;</button>
+        <button id="close-lightbox" class="close-btn"
+          style="position: absolute; top: 20px; right: 20px; color: white; font-size: 40px;">&times;</button>
+      </div>
+    </div>
+
+    <!-- 토스트 메시지 -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Password Change Modal -->
+    <div id="password-change-overlay" class="modal-overlay hidden" style="z-index: 4000;">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>비밀번호 변경</h2>
+          <button id="close-password-change" class="close-btn">&times;</button>
+        </div>
+        <form id="password-change-form">
+          <div id="password-change-msg" class="message-container hidden"></div>
+
+          <div class="form-group">
+            <label for="current-password">현재 비밀번호</label>
+            <div class="input-wrapper">
+              <input type="password" id="current-password" required placeholder="현재 사용 중인 비밀번호">
+              <span id="current-password-status" class="status-indicator"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="new-password">새 비밀번호</label>
+            <input type="password" id="new-password" required placeholder="새로운 비밀번호 (6자 이상)">
+          </div>
+          <div class="form-group">
+            <label for="confirm-password">새 비밀번호 확인</label>
+            <input type="password" id="confirm-password" required placeholder="새로운 비밀번호 확인">
+          </div>
+          <div class="modal-footer">
+            <button type="submit" id="submit-password-change" class="primary-btn">변경하기</button>
+            <button type="button" id="cancel-password-change" class="danger-btn"
+              style="background: #334155; color: white;">취소</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+
+</html>
