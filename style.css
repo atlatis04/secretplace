@@ -692,14 +692,20 @@ textarea {
 
 /* Geolocation Button */
 #geo-btn {
-    position: absolute;
-    bottom: 30px;
-    bottom: calc(30px + env(safe-area-inset-bottom));
+    position: fixed;
+    /* Changed from absolute to fixed for better mobile support */
+    bottom: 80px;
+    /* Increased base offset to avoid interference with bottom bars */
+    bottom: calc(80px + env(safe-area-inset-bottom));
     right: 20px;
-    z-index: 1000;
-    width: 44px;
-    height: 44px;
+    z-index: 5000;
+    /* Increased z-index */
+    width: 48px;
+    /* Slightly larger touch target */
+    height: 48px;
     border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    /* Stronger shadow for visibility */
 }
 
 #geo-btn:hover {

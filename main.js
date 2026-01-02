@@ -745,7 +745,7 @@ geoBtn.onclick = () => {
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const { latitude, longitude } = position.coords;
-            map.flyTo([latitude, longitude], 16);
+            map.flyTo([latitude, longitude], 18);
             showToast('현재 위치로 이동했습니다.');
         },
         (err) => {
