@@ -33,8 +33,16 @@ const toast = document.getElementById('toast');
 
 // Sidebar Filter Elements
 const colorFilterGroup = document.getElementById('color-filter-group');
+const dateFilterBtn = document.getElementById('date-filter-btn');
+const dateFilterPanel = document.getElementById('date-filter-panel');
+const dateFromInput = document.getElementById('date-from');
+const dateToInput = document.getElementById('date-to');
+const applyDateFilterBtn = document.getElementById('apply-date-filter');
+const clearDateFilterBtn = document.getElementById('clear-date-filter');
 
 let currentFilterColor = 'all';
+let currentDateFrom = null;
+let currentDateTo = null;
 
 // New Elements
 const starRating = document.getElementById('star-rating');
@@ -609,6 +617,51 @@ colorFilterGroup.onclick = (e) => {
     currentFilterColor = dot.dataset.color;
     applyFilters();
 };
+
+// Date filter event listeners
+if (dateFilterBtn) {
+    dateFilterBtn.onclick = (e) => {
+        e.stopPropagation();
+        dateFilterPanel.classList.toggle('hidden');
+        // Close user info panel if open
+        userInfoPanel.classList.add('hidden');
+    };
+}
+
+if (applyDateFilterBtn) {
+    applyDateFilterBtn.onclick = () => {
+        currentDateFrom = dateFromInput.value;
+        currentDateTo = dateToInput.value;
+        applyFilters();
+        dateFilterPanel.classList.add('hidden');
+
+        if (currentDateFrom || currentDateTo) {
+            const fromStr = currentDateFrom || '시작일 없음';
+            const toStr = currentDateTo || '종료일 없음';
+            showToast(`기간 필터 적용: ${fromStr} ~ ${toStr}`);
+        }
+    };
+}
+
+if (clearDateFilterBtn) {
+    clearDateFilterBtn.onclick = () => {
+        dateFromInput.value = '';
+        dateToInput.value = '';
+        currentDateFrom = null;
+        currentDateTo = null;
+        applyFilters();
+        dateFilterPanel.classList.add('hidden');
+        showToast('기간 필터가 초기화되었습니다.');
+    };
+}
+
+// Close date filter panel when clicking elsewhere
+document.addEventListener('click', (e) => {
+    if (!dateFilterPanel.contains(e.target) && e.target !== dateFilterBtn) {
+        dateFilterPanel.classList.add('hidden');
+    }
+});
+dateFilterPanel.onclick = (e) => e.stopPropagation();
 
 
 // Auth Logic

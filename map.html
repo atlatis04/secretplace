@@ -19,6 +19,9 @@
       <button id="auth-toggle-btn" class="glass-button square" title="로그인/로그아웃">
         <span class="icon">👤</span>
       </button>
+      <button id="date-filter-btn" class="glass-button square" title="기간 필터">
+        <span class="icon">📅</span>
+      </button>
       <button id="list-toggle-btn" class="glass-button square" title="목록 보기">
         <span class="icon">☰</span>
       </button>
@@ -191,6 +194,23 @@
         변경</button>
       <button id="logout-btn" class="danger-btn"
         style="width: 100%; margin-top: 16px; border-radius: 8px; border: none; padding: 10px; font-weight: 700; cursor: pointer;">로그아웃</button>
+    </div>
+
+    <!-- Date Filter Panel -->
+    <div id="date-filter-panel" class="date-filter-panel hidden">
+      <div class="panel-header">
+        <h3>기간 필터</h3>
+      </div>
+      <div class="date-filter-content">
+        <label for="date-from">시작일</label>
+        <input type="date" id="date-from">
+        <label for="date-to" style="margin-top: 12px;">종료일</label>
+        <input type="date" id="date-to">
+        <button id="apply-date-filter" class="primary-btn"
+          style="width: 100%; margin-top: 16px; padding: 10px; border-radius: 8px;">적용</button>
+        <button id="clear-date-filter" class="secondary-btn"
+          style="width: 100%; margin-top: 8px; padding: 10px; border-radius: 8px;">초기화</button>
+      </div>
     </div>
 
     <!-- Geolocation Button -->
