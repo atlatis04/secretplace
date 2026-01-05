@@ -782,7 +782,27 @@ textarea {
     gap: 8px;
     overflow-x: auto;
     margin-bottom: 12px;
-    padding-bottom: 4px;
+    padding-bottom: 8px;
+}
+
+/* Custom Scrollbar for Popup Gallery */
+.popup-gallery::-webkit-scrollbar {
+    height: 8px;
+}
+
+.popup-gallery::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 4px;
+}
+
+.popup-gallery::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.6);
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.popup-gallery::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.8);
 }
 
 .popup-gallery img {
