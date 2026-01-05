@@ -198,13 +198,30 @@ function renderFilteredList(placesToRender) {
     markers.forEach(m => map.removeLayer(m));
     markers = [];
 
-    // Group by category (e.g., "Seoul", "Busan" or specific city/district)
+    // Group by category with country and city
     const grouped = {};
     placesToRender.forEach(p => {
         addMarkerToMap(p);
-        const cat = p.address?.split(' ')[0] || '기타'; // First word of address as category
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(p);
+
+        // Extract country and city from address
+        const addressParts = p.address?.split(',') || [];
+
+        let country, city;
+
+        if (addressParts.length >= 2) {
+            // Address has comma - last part is country
+            country = addressParts[addressParts.length - 1].trim();
+            city = addressParts[0].trim().split(' ')[0];
+        } else {
+            // No comma in address - use default country message
+            country = '국가 정보 없음';
+            city = p.address ? p.address.trim().split(' ')[0] : '기타';
+        }
+
+        const categoryKey = `${country}, ${city}`;
+
+        if (!grouped[categoryKey]) grouped[categoryKey] = [];
+        grouped[categoryKey].push(p);
     });
 
     Object.keys(grouped).sort().forEach(cat => {
@@ -280,7 +297,7 @@ function addToList(place) {
             <div class="sidebar-stars">${starsHtml}</div>
             <div style="display: flex; align-items: center;">
                 <span class="color-bullet" style="background-color: ${place.color}"></span>
-                <span>${place.visit_date || ''}</span>
+                <span style="font-size: 12px; color: #94a3b8;">${place.visit_date || ''}</span>
             </div>
         </div>
     `;
@@ -302,17 +319,24 @@ async function reverseGeocode(lat, lng) {
         });
         const data = await response.json();
 
-        // Simplified address logic: "City District" (e.g., 서울특별시 종로구)
+        // Format: "Country, City District" (e.g., 대한민국, 서울 종로구)
         if (data.address) {
             const addr = data.address;
+            const country = addr.country || '국가 정보 없음';
             const city = addr.city || addr.province || addr.state || '';
             const district = addr.borough || addr.suburb || addr.district || addr.city_district || '';
 
-            if (city && district) return `${city} ${district}`;
-            return city || district || data.display_name?.split(', ').slice(0, 1).join(' ') || '주소 정보 없음';
+            let location = '';
+            if (city && district) {
+                location = `${city} ${district}`;
+            } else {
+                location = city || district || data.display_name?.split(', ')[0] || '지명 정보 없음';
+            }
+
+            return `${location}, ${country}`;
         }
 
-        return data.display_name?.split(', ').slice(0, 2).join(' ') || '주소 정보 없음';
+        return '주소 정보 없음';
     } catch (err) {
         if (import.meta.env.DEV) {
             console.error('Geocoding error:', err);
