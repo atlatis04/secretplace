@@ -1,10 +1,13 @@
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from './supabase.js'
+import { resizeImage, getOptimizedFileName } from './src/imageResizer.js'
 
 let map;
 let markers = [];
 let currentPlace = null;
+let currentUser = null;
+let userPhotoCount = 0; // Total photos uploaded by user
 
 // 초기 위치 (서울)
 const DEFAULT_COORD = [37.5665, 126.9780];
@@ -90,7 +93,6 @@ let currentLightboxIndex = 0;
 
 let uploadedPhotos = [];
 let allPlaces = [];
-let currentUser = null;
 let isSignUpMode = false;
 
 // Initialize Map
@@ -162,7 +164,16 @@ async function loadPlaces() {
     }
 
     allPlaces = places || [];
+
+    // Calculate total photo count from all places
+    if (currentUser) {
+        userPhotoCount = allPlaces.reduce((total, place) => {
+            return total + (place.photo_urls?.length || 0);
+        }, 0);
+    }
+
     applyFilters(); // Apply current search/color filters to the fetched data
+    updateAuthUI(); // Update UI with photo count
 }
 
 // Render list with categories and filter
@@ -363,6 +374,23 @@ photoInput.onchange = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
+    // Check upload limits
+    const currentPinPhotos = uploadedPhotos.length;
+    const PER_PIN_LIMIT = 3;
+    const TOTAL_USER_LIMIT = 300;
+
+    // Check per-pin limit
+    if (currentPinPhotos + files.length > PER_PIN_LIMIT) {
+        showToast(`핀당 최대 ${PER_PIN_LIMIT}장까지 업로드 가능합니다.`);
+        return;
+    }
+
+    // Check total user limit
+    if (userPhotoCount + files.length > TOTAL_USER_LIMIT) {
+        showToast(`총 ${TOTAL_USER_LIMIT}장까지 업로드 가능합니다. (현재: ${userPhotoCount}장)`);
+        return;
+    }
+
     // Security: File validation
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     const maxSize = 5 * 1024 * 1024; // 5MB
@@ -380,32 +408,44 @@ photoInput.onchange = async (e) => {
             continue;
         }
 
-        showToast('사진 업로드 중...');
+        showToast('사진 최적화 중...');
 
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-        const filePath = `${fileName}`;
+        try {
+            // Resize and convert to WebP
+            const optimizedBlob = await resizeImage(file);
+            const optimizedFileName = getOptimizedFileName(file.name);
 
-        const { data, error } = await supabase.storage
-            .from('place-photos')
-            .upload(filePath, file);
+            showToast('사진 업로드 중...');
 
-        if (error) {
-            if (import.meta.env.DEV) {
-                console.error('Upload error:', error);
+            const { data, error } = await supabase.storage
+                .from('place-photos')
+                .upload(optimizedFileName, optimizedBlob, {
+                    contentType: 'image/webp'
+                });
+
+            if (error) {
+                if (import.meta.env.DEV) {
+                    console.error('Upload error:', error);
+                }
+                showToast('사진 업로드 실패');
+                continue;
             }
-            showToast('사진 업로드 실패');
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('place-photos')
+                .getPublicUrl(optimizedFileName);
+
+            uploadedPhotos.push(publicUrl);
+            userPhotoCount++; // Increment total photo count
+        } catch (err) {
+            console.error('Image processing error:', err);
+            showToast('이미지 처리 실패');
             continue;
         }
-
-        const { data: { publicUrl } } = supabase.storage
-            .from('place-photos')
-            .getPublicUrl(filePath);
-
-        uploadedPhotos.push(publicUrl);
     }
 
     updatePhotoPreviews();
+    updateAuthUI(); // Update photo count display
     showToast('업로드 완료');
 };
 
@@ -582,6 +622,12 @@ function updateAuthUI() {
         userInfoEmail.innerText = currentUser.email;
         userAvatarInitial.innerText = currentUser.email[0].toUpperCase();
         userInfoProvider.innerText = currentUser.app_metadata.provider === 'email' ? '이메일 로그인' : `${currentUser.app_metadata.provider} 로그인`;
+
+        // Update photo count display
+        const photoCountEl = document.getElementById('user-photo-count');
+        if (photoCountEl) {
+            photoCountEl.innerText = `${userPhotoCount} / 300`;
+        }
     } else {
         authOverlay.classList.remove('hidden'); // Show login gate for guests
         authToggleBtn.innerHTML = '<span class="icon">👤</span>';
