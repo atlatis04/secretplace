@@ -64,8 +64,9 @@ body {
 .map-controls-repositioned {
     position: absolute;
     top: 80px;
-    /* Offset to be below default zoom buttons */
+    /* Default: Below zoom buttons on left */
     left: 10px;
+    right: auto;
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -73,14 +74,15 @@ body {
 }
 
 .glass-button.square {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     padding: 0;
     justify-content: center;
-    border-radius: 4px;
+    border-radius: 2px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.65);
     background: white;
     color: #333;
-    border: 2px solid rgba(0, 0, 0, 0.2);
+    border: none;
 }
 
 .glass-button.square:hover {
@@ -96,7 +98,7 @@ body {
 .sidebar {
     position: absolute;
     top: 20px;
-    left: 60px;
+    /* Position set dynamically by JS based on handedness */
     bottom: 20px;
     width: 320px;
     background: var(--glass-bg);
@@ -621,8 +623,7 @@ textarea {
 .user-info-panel {
     position: absolute;
     top: 80px;
-    left: 55px;
-    /* Offset from auth-toggle-btn */
+    /* Position set dynamically by JS based on handedness */
     width: 240px;
     background: #1e293b;
     border: 1px solid var(--glass-border);
@@ -716,7 +717,7 @@ textarea {
 .date-filter-panel {
     position: absolute;
     top: 120px;
-    left: 55px;
+    /* Position set dynamically by JS based on handedness */
     width: 240px;
     background: #1e293b;
     border: 1px solid var(--glass-border);
@@ -773,9 +774,9 @@ textarea {
 #geo-btn {
     position: fixed;
     /* Changed from absolute to fixed for better mobile support */
-    bottom: 80px;
+    bottom: 30px;
     /* Increased base offset to avoid interference with bottom bars */
-    bottom: calc(80px + env(safe-area-inset-bottom));
+    bottom: calc(30px + env(safe-area-inset-bottom));
     right: 20px;
     z-index: 5000;
     /* Increased z-index */
@@ -814,7 +815,7 @@ textarea {
 }
 
 .nav-btn {
-    position: fixed;
+    position: absolute;
     top: 50%;
     transform: translateY(-50%);
     background: rgba(255, 255, 255, 0.1);
@@ -839,11 +840,11 @@ textarea {
 }
 
 .nav-btn.prev {
-    left: 20px;
+    left: -70px;
 }
 
 .nav-btn.next {
-    right: 20px;
+    right: -70px;
 }
 
 @media (max-width: 768px) {

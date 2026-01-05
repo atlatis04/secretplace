@@ -192,6 +192,9 @@
       <button id="change-password-btn" class="secondary-btn"
         style="width: 100%; margin-top: 8px; border-radius: 8px; border: none; padding: 10px; font-weight: 700; cursor: pointer; background: rgba(59, 130, 246, 0.2); color: #60a5fa;">비밀번호
         변경</button>
+      <button id="settings-btn" class="secondary-btn"
+        style="width: 100%; margin-top: 8px; border-radius: 8px; border: none; padding: 10px; font-weight: 700; cursor: pointer; background: rgba(255, 255, 255, 0.1); color: var(--text-gray);">⚙️
+        설정</button>
       <button id="logout-btn" class="danger-btn"
         style="width: 100%; margin-top: 16px; border-radius: 8px; border: none; padding: 10px; font-weight: 700; cursor: pointer;">로그아웃</button>
     </div>
@@ -210,6 +213,34 @@
           style="width: 100%; margin-top: 16px; padding: 10px; border-radius: 8px;">적용</button>
         <button id="clear-date-filter" class="secondary-btn"
           style="width: 100%; margin-top: 8px; padding: 10px; border-radius: 8px;">초기화</button>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay hidden">
+      <div class="modal-content" style="max-width: 400px;">
+        <button class="close-btn" id="close-settings">&times;</button>
+        <h2 style="color: white; margin-bottom: 24px;">설정</h2>
+        <div class="setting-group" style="margin-bottom: 20px;">
+          <label
+            style="display: block; margin-bottom: 8px; font-weight: 600; color: rgba(255, 255, 255, 0.9); font-size: 15px;">손잡이</label>
+          <select id="handedness-select"
+            style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); color: white; font-size: 15px; cursor: pointer; font-weight: 500;">
+            <option value="right" style="background: #1a1a2e; color: white;">오른손잡이</option>
+            <option value="left" style="background: #1a1a2e; color: white;">왼손잡이</option>
+          </select>
+        </div>
+        <div class="setting-group" style="margin-bottom: 24px;">
+          <label
+            style="display: block; margin-bottom: 8px; font-weight: 600; color: rgba(255, 255, 255, 0.9); font-size: 15px;">언어</label>
+          <select id="language-select"
+            style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); color: white; font-size: 15px; cursor: pointer; font-weight: 500;">
+            <option value="ko" style="background: #1a1a2e; color: white;">한국어</option>
+            <option value="en" style="background: #1a1a2e; color: white;">English</option>
+          </select>
+        </div>
+        <button id="save-settings-btn" class="primary-btn"
+          style="width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 15px;">저장</button>
       </div>
     </div>
 

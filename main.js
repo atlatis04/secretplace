@@ -9,6 +9,12 @@ let currentPlace = null;
 let currentUser = null;
 let userPhotoCount = 0; // Total photos uploaded by user
 
+// Initialize userSettings with default values (loaded from localStorage later)
+let userSettings = { handedness: 'right', language: 'ko' };
+
+// Date filter range
+let currentFilterDateRange = { from: null, to: null };
+
 // 초기 위치 (서울)
 const DEFAULT_COORD = [37.5665, 126.9780];
 
@@ -248,8 +254,9 @@ function addMarkerToMap(place) {
     `;
 
     marker.bindPopup(popupContent, {
-        offset: [-18, -35], // Display popup above and left of the pin
-        autoPan: true
+        offset: userSettings.handedness === 'left' ? [20, -20] : [-20, -20], // Dynamic offset based on handedness
+        autoPan: true,
+        autoPanPadding: userSettings.handedness === 'left' ? [80, 20] : [20, 80] // Extra padding on the side with controls
     });
     marker.placeId = place.id;
     markers.push(marker);
@@ -594,15 +601,38 @@ lightbox.onclick = (e) => {
     if (e.target === lightbox) lightbox.classList.add('hidden');
 };
 
-// Filtering logic (Search + Color)
+// Filtering logic (Search + Color + Date Range)
 function applyFilters() {
+    console.log('applyFilters called, allPlaces:', allPlaces.length);
     const searchVal = placeFilter.value.toLowerCase();
     const filtered = allPlaces.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchVal) ||
             (p.address && p.address.toLowerCase().includes(searchVal));
         const matchesColor = currentFilterColor === 'all' || p.color === currentFilterColor;
-        return matchesSearch && matchesColor;
+
+        // Date range filtering - only apply if date filter is set
+        let matchesDate = true;
+        if (currentFilterDateRange.from || currentFilterDateRange.to) {
+            const visitDate = p.visit_date ? new Date(p.visit_date) : null;
+            if (visitDate) {
+                if (currentFilterDateRange.from) {
+                    const fromDate = new Date(currentFilterDateRange.from);
+                    if (visitDate < fromDate) matchesDate = false;
+                }
+                if (currentFilterDateRange.to) {
+                    const toDate = new Date(currentFilterDateRange.to);
+                    if (visitDate > toDate) matchesDate = false;
+                }
+            } else {
+                // If place has no visit_date, exclude it when date filter is active
+                matchesDate = false;
+            }
+        }
+        // If no date filter is set, matchesDate remains true for all places
+
+        return matchesSearch && matchesColor && matchesDate;
     });
+    console.log('Filtered places:', filtered.length);
     renderFilteredList(filtered);
 }
 
@@ -630,17 +660,42 @@ if (dateFilterBtn) {
 
 if (applyDateFilterBtn) {
     applyDateFilterBtn.onclick = () => {
-        currentDateFrom = dateFromInput.value;
-        currentDateTo = dateToInput.value;
-        applyFilters();
-        dateFilterPanel.classList.add('hidden');
+        try {
+            console.log('Apply date filter clicked');
+            currentDateFrom = dateFromInput.value;
+            currentDateTo = dateToInput.value;
+            console.log('Date range:', currentDateFrom, 'to', currentDateTo);
 
-        if (currentDateFrom || currentDateTo) {
+            // Check if at least one date is set
+            if (!currentDateFrom && !currentDateTo) {
+                showToast('시작일과 종료일을 설정해야만 기간 필터가 적용됩니다.');
+                dateFilterPanel.classList.add('hidden');
+                return;
+            }
+
+            // Sync with currentFilterDateRange
+            currentFilterDateRange.from = currentDateFrom;
+            currentFilterDateRange.to = currentDateTo;
+
+            applyFilters();
+            dateFilterPanel.classList.add('hidden');
+
+            // Update filter button background color to blue
+            const dateFilterBtn = document.getElementById('date-filter-btn');
+            if (dateFilterBtn) {
+                dateFilterBtn.style.background = 'rgba(59, 130, 246, 0.8)'; // Blue background
+            }
+
             const fromStr = currentDateFrom || '시작일 없음';
             const toStr = currentDateTo || '종료일 없음';
             showToast(`기간 필터 적용: ${fromStr} ~ ${toStr}`);
+        } catch (error) {
+            console.error('Error applying date filter:', error);
+            showToast('기간 필터 적용 중 오류가 발생했습니다.');
         }
     };
+} else {
+    console.error('Apply date filter button not found');
 }
 
 if (clearDateFilterBtn) {
@@ -649,8 +704,20 @@ if (clearDateFilterBtn) {
         dateToInput.value = '';
         currentDateFrom = null;
         currentDateTo = null;
+
+        // Sync with currentFilterDateRange
+        currentFilterDateRange.from = null;
+        currentFilterDateRange.to = null;
+
         applyFilters();
         dateFilterPanel.classList.add('hidden');
+
+        // Reset filter button background color
+        const dateFilterBtn = document.getElementById('date-filter-btn');
+        if (dateFilterBtn) {
+            dateFilterBtn.style.background = 'white'; // Reset to white
+        }
+
         showToast('기간 필터가 초기화되었습니다.');
     };
 }
@@ -710,6 +777,152 @@ logoutBtn.onclick = async () => {
         userInfoPanel.classList.add('hidden');
     }
 };
+
+// Settings Modal with Handedness Implementation
+const settingsBtn = document.getElementById('settings-btn');
+const settingsModal = document.getElementById('settings-modal');
+const closeSettings = document.getElementById('close-settings');
+const saveSettingsBtn = document.getElementById('save-settings-btn');
+const handednessSelect = document.getElementById('handedness-select');
+const languageSelect = document.getElementById('language-select');
+
+// Load settings from localStorage
+function loadSettings() {
+    const saved = localStorage.getItem('userSettings');
+    if (saved) {
+        const settings = JSON.parse(saved);
+        return settings;
+    }
+    return { handedness: 'right', language: 'ko' };
+}
+
+// Save settings to localStorage
+function saveSettings(settings) {
+    localStorage.setItem('userSettings', JSON.stringify(settings));
+}
+
+// Apply handedness setting
+function applyHandedness(handedness) {
+    const controls = document.querySelector('.map-controls-repositioned');
+    const geoBtn = document.getElementById('geo-btn');
+
+    if (handedness === 'right') {
+        // Right-handed: buttons on right side, aligned with zoom buttons height
+        controls.style.left = 'auto';
+        controls.style.right = '10px';
+        controls.style.top = '10px'; // Align with zoom buttons (approx height)
+
+        // Geo button on right (bottom)
+        geoBtn.style.left = 'auto';
+        geoBtn.style.right = '20px';
+
+        // Panels on right side
+        const userInfoPanel = document.getElementById('user-info-panel');
+        const dateFilterPanel = document.getElementById('date-filter-panel');
+        const sidebar = document.getElementById('sidebar');
+
+        if (userInfoPanel) {
+            userInfoPanel.style.left = 'auto';
+            userInfoPanel.style.right = '55px';
+            userInfoPanel.style.top = '10px'; // Align with button height
+        }
+        if (dateFilterPanel) {
+            dateFilterPanel.style.left = 'auto';
+            dateFilterPanel.style.right = '55px';
+            dateFilterPanel.style.top = '50px'; // Below user info panel
+        }
+        if (sidebar) {
+            sidebar.style.left = 'auto';
+            sidebar.style.right = '60px';
+        }
+    } else {
+        // Left-handed: buttons on left side, below zoom buttons
+        controls.style.left = '10px';
+        controls.style.right = 'auto';
+        controls.style.top = '80px'; // Below zoom buttons
+
+        // Geo button on left (bottom)
+        geoBtn.style.right = 'auto';
+        geoBtn.style.left = '20px';
+
+        // Panels on left side
+        const userInfoPanel = document.getElementById('user-info-panel');
+        const dateFilterPanel = document.getElementById('date-filter-panel');
+        const sidebar = document.getElementById('sidebar');
+
+        if (userInfoPanel) {
+            userInfoPanel.style.left = '55px';
+            userInfoPanel.style.right = 'auto';
+            userInfoPanel.style.top = '80px'; // Below zoom buttons
+        }
+        if (dateFilterPanel) {
+            dateFilterPanel.style.left = '55px';
+            dateFilterPanel.style.right = 'auto';
+            dateFilterPanel.style.top = '120px'; // Below user info panel
+        }
+        if (sidebar) {
+            sidebar.style.left = '60px';
+            sidebar.style.right = 'auto';
+        }
+    }
+
+    // Update popup offsets for existing markers if any
+    updateMarkerPopupOffsets(handedness);
+}
+
+function updateMarkerPopupOffsets(handedness) {
+    // This helper updates options for future opens
+    if (typeof markers !== 'undefined') {
+        markers.forEach(marker => {
+            if (marker.getPopup()) {
+                marker.getPopup().options.offset = handedness === 'left' ? [20, -20] : [-20, -20];
+                marker.getPopup().options.autoPanPadding = handedness === 'left' ? [80, 20] : [20, 80];
+            }
+        });
+    }
+}
+
+// Initialize settings on page load
+const savedSettings = loadSettings();
+userSettings = savedSettings; // Update global variable
+applyHandedness(userSettings.handedness);
+
+if (settingsBtn) {
+    settingsBtn.onclick = () => {
+        // Load current settings into selects
+        const settings = loadSettings();
+        handednessSelect.value = settings.handedness;
+        languageSelect.value = settings.language;
+        settingsModal.classList.remove('hidden');
+        userInfoPanel.classList.add('hidden');
+    };
+}
+
+if (closeSettings) {
+    closeSettings.onclick = () => {
+        settingsModal.classList.add('hidden');
+    };
+}
+
+if (saveSettingsBtn) {
+    saveSettingsBtn.onclick = () => {
+        const newSettings = {
+            handedness: handednessSelect.value,
+            language: languageSelect.value
+        };
+        saveSettings(newSettings);
+        applyHandedness(newSettings.handedness);
+        settingsModal.classList.add('hidden');
+        showToast('설정이 저장되었습니다.');
+    };
+}
+
+// Close settings modal when clicking outside
+settingsModal?.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+        settingsModal.classList.add('hidden');
+    }
+});
 
 authSwitchBtn.onclick = () => {
     isSignUpMode = !isSignUpMode;
