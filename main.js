@@ -676,9 +676,12 @@ colorFilterGroup.onclick = (e) => {
 if (dateFilterBtn) {
     dateFilterBtn.onclick = (e) => {
         e.stopPropagation();
-        dateFilterPanel.classList.toggle('hidden');
-        // Close user info panel if open
+
+        // Close other panels
         userInfoPanel.classList.add('hidden');
+        sidebar.classList.add('hidden');
+
+        dateFilterPanel.classList.toggle('hidden');
     };
 }
 
@@ -783,10 +786,15 @@ function updateAuthUI() {
 
 authToggleBtn.onclick = (e) => {
     e.stopPropagation();
-    if (currentUser) {
-        userInfoPanel.classList.toggle('hidden');
-    } else {
+
+    // Close other panels
+    dateFilterPanel.classList.add('hidden');
+    sidebar.classList.add('hidden');
+
+    if (!currentUser) {
         authOverlay.classList.remove('hidden');
+    } else {
+        userInfoPanel.classList.toggle('hidden');
     }
 };
 
@@ -950,7 +958,7 @@ settingsModal?.addEventListener('click', (e) => {
 
 authSwitchBtn.onclick = () => {
     isSignUpMode = !isSignUpMode;
-    authTitle.innerText = isSignUpMode ? '회원가입' : 'Place Map 시작하기';
+    authTitle.innerText = isSignUpMode ? '회원가입' : 'MapNote 시작하기';
     authSubmitBtn.innerText = isSignUpMode ? '가입하기' : '로그인';
     authSwitchBtn.innerText = isSignUpMode ? '이미 계정이 있으신가요? 로그인' : '계정이 없으신가요? 회원가입';
 };
@@ -1086,7 +1094,13 @@ passwordChangeForm.onsubmit = async (e) => {
 };
 
 // UI Events
-listToggleBtn.onclick = () => sidebar.classList.toggle('hidden');
+listToggleBtn.onclick = () => {
+    // Close other panels
+    userInfoPanel.classList.add('hidden');
+    dateFilterPanel.classList.add('hidden');
+
+    sidebar.classList.toggle('hidden');
+};
 closeSidebar.onclick = () => sidebar.classList.add('hidden');
 closeModal.onclick = () => modalOverlay.classList.add('hidden');
 ratingInput.oninput = null; // Remove old listener
