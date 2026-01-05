@@ -500,10 +500,12 @@ textarea {
     background: var(--primary);
     border: none;
     color: white;
-    padding: 4px 12px;
+    padding: 8px 12px;
     border-radius: 6px;
     font-size: 12px;
     cursor: pointer;
+    width: 100%;
+    display: block;
 }
 
 /* Toast */
@@ -789,12 +791,13 @@ textarea {
     object-fit: cover;
     border-radius: 8px;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: opacity 0.2s;
     border: 1px solid var(--glass-border);
+    flex-shrink: 0;
 }
 
 .popup-gallery img:hover {
-    transform: scale(1.1);
+    opacity: 0.8;
 }
 
 .popup-comment {

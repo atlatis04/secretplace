@@ -117,7 +117,19 @@ function initMap() {
         });
     });
 
-
+    // Get user's current location and center map
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                map.setView([latitude, longitude], 13);
+            },
+            (error) => {
+                console.log('Geolocation error:', error.message);
+                // Keep default location (Seoul) if geolocation fails
+            }
+        );
+    }
 
     // Auth State Check
     supabase.auth.onAuthStateChange((event, session) => {
@@ -216,7 +228,10 @@ function addMarkerToMap(place) {
         </div>
     `;
 
-    marker.bindPopup(popupContent);
+    marker.bindPopup(popupContent, {
+        offset: [-18, -35], // Display popup above and left of the pin
+        autoPan: true
+    });
     marker.placeId = place.id;
     markers.push(marker);
 }
@@ -297,6 +312,10 @@ function openModal(place = null, lat = null, lng = null, address = '') {
         document.getElementById('place-comment').value = place.comment || '';
         document.getElementById('visit-date').value = place.visit_date || '';
         updateStars(place.rating);
+
+        // Fix: Populate lat/lng for existing places to prevent location change during edit
+        document.getElementById('place-lat').value = place.latitude;
+        document.getElementById('place-lng').value = place.longitude;
 
         const radios = document.getElementsByName('color');
         radios.forEach(r => {
