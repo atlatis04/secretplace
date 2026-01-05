@@ -467,14 +467,14 @@ textarea {
 
 /* Popup */
 .leaflet-popup-content-wrapper {
-    background: #1e293b;
-    color: white;
+    background: #ffffff;
+    color: #1e293b;
     border-radius: 16px;
     padding: 10px;
 }
 
 .leaflet-popup-tip {
-    background: #1e293b;
+    background: #ffffff;
 }
 
 .popup-content h3 {
@@ -822,11 +822,11 @@ textarea {
 
 .popup-comment {
     font-size: 13px;
-    color: #ffffff;
+    color: #334155;
     line-height: 1.5;
     margin-bottom: 12px;
     padding: 10px 14px;
-    background: rgba(30, 41, 59, 0.9);
+    background: rgba(241, 245, 249, 0.8);
     border-radius: 8px;
     border-left: 3px solid #3b82f6;
 }
