@@ -101,7 +101,7 @@ body {
     /* Position set dynamically by JS based on handedness */
     bottom: 20px;
     width: 320px;
-    background: var(--glass-bg);
+    background: #1e293b;
     backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
     border-radius: 20px;
