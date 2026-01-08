@@ -8,6 +8,9 @@ let markers = [];
 let currentPlace = null;
 let currentUser = null;
 let userPhotoCount = 0; // Total photos uploaded by user
+let userLocationMarker = null; // Marker for the user's current location
+let userLocationCircle = null; // Circle showing the accuracy radius of the user's location
+let searchMarker = null; // Temporary marker for a selected search result
 
 // Initialize userSettings with default values (loaded from localStorage later)
 let userSettings = { handedness: 'right', language: 'ko' };
@@ -15,8 +18,11 @@ let userSettings = { handedness: 'right', language: 'ko' };
 // Date filter range
 let currentFilterDateRange = { from: null, to: null };
 
-// 초기 위치 (서울)
-const DEFAULT_COORD = [37.5665, 126.9780];
+// 초기 위치 - 언어에 따라 다름 (한글: 서울, 영어: LA)
+const COORDS = {
+    ko: [37.5665, 126.9780], // Seoul
+    en: [34.0522, -118.2437] // Los Angeles
+};
 
 // Translation Dictionary
 const translations = {
@@ -395,6 +401,11 @@ const closeLightbox = document.getElementById('close-lightbox');
 const prevLightbox = document.getElementById('prev-lightbox');
 const nextLightbox = document.getElementById('next-lightbox');
 
+// Map Search Elements
+const mapSearchInput = document.getElementById('map-search-input');
+const searchResults = document.getElementById('search-results');
+const searchClearBtn = document.getElementById('search-clear-btn');
+
 let lightboxImages = [];
 let currentLightboxIndex = 0;
 
@@ -404,7 +415,9 @@ let isSignUpMode = false;
 
 // Initialize Map
 function initMap() {
-    map = L.map('map').setView(DEFAULT_COORD, 13);
+    // Use language-based coordinates
+    const initialCoord = COORDS[userSettings.language] || COORDS.ko;
+    map = L.map('map').setView(initialCoord, 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -432,10 +445,16 @@ function initMap() {
             (position) => {
                 const { latitude, longitude } = position.coords;
                 map.setView([latitude, longitude], 13);
+                updateUserLocation(position, false); // Add marker but don't flyTo (already setView)
             },
             (error) => {
                 console.log('Geolocation error:', error.message);
-                // Keep default location (Seoul) if geolocation fails
+                // Keep language-based default location if geolocation fails
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
             }
         );
     }
@@ -531,12 +550,11 @@ function renderFilteredList(placesToRender) {
 // Add Marker
 function addMarkerToMap(place) {
     const icon = L.divIcon({
-        className: 'custom-pin-icon',
-        html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); transform: translate(-50%, -50%); cursor: pointer;">
-                <path fill="${place.color}" d="M12 0C7.58 0 4 3.58 4 8c0 5.25 7 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
-               </svg>`,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
+        className: 'custom-div-icon',
+        html: `<div class="marker-pin" style="background: ${place.color}"></div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
     });
 
     const marker = L.marker([place.latitude, place.longitude], { icon }).addTo(map);
@@ -1618,8 +1636,22 @@ geoBtn.onclick = () => {
             showToast(t('geo.moved'));
         },
         (err) => {
-            showToast(t('geo.failed'));
-            console.error(err);
+            // Handle different error types
+            if (err.code === err.PERMISSION_DENIED) {
+                // Permission denied - show instruction message
+                const message = userSettings.language === 'en'
+                    ? 'Location access denied.\n\nTo enable:\n1. Click the lock icon (🔒) in the address bar\n2. Allow location permissions\n3. Click the location button again'
+                    : '위치 접근이 거부되었습니다.\n\n허용 방법:\n1. 주소창의 자물쇠 아이콘(🔒)을 클릭\n2. 위치 권한을 허용으로 변경\n3. 위치 버튼을 다시 클릭';
+
+                alert(message);
+            } else if (err.code === err.POSITION_UNAVAILABLE) {
+                showToast(userSettings.language === 'en' ? 'Location information unavailable' : '위치 정보를 사용할 수 없습니다');
+            } else if (err.code === err.TIMEOUT) {
+                showToast(userSettings.language === 'en' ? 'Location request timed out' : '위치 요청 시간 초과');
+            } else {
+                showToast(t('geo.failed'));
+                console.error(err);
+            }
         }
     );
 };
@@ -1867,6 +1899,232 @@ function updateUILanguage() {
         applyFilters();
     }
 }
+
+// Helper to update user location marker and accuracy circle
+function updateUserLocation(position, shouldFly = true) {
+    const { latitude, longitude, accuracy } = position.coords;
+    const pos = [latitude, longitude];
+
+    if (shouldFly) {
+        map.flyTo(pos, 16);
+    }
+
+    // Update or create user location marker
+    if (userLocationMarker) {
+        userLocationMarker.setLatLng(pos);
+    } else {
+        const icon = L.divIcon({
+            className: 'current-location-marker',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+        });
+        userLocationMarker = L.marker(pos, { icon, zIndexOffset: 1000 }).addTo(map);
+    }
+
+    // Update or create accuracy circle
+    if (userLocationCircle) {
+        userLocationCircle.setLatLng(pos);
+        userLocationCircle.setRadius(accuracy);
+    } else {
+        userLocationCircle = L.circle(pos, {
+            radius: accuracy,
+            color: '#3b82f6',
+            fillColor: '#3b82f6',
+            fillOpacity: 0.15,
+            weight: 1
+        }).addTo(map);
+    }
+}
+
+// Current Location functionality
+if (geoBtn) {
+    geoBtn.onclick = () => {
+        if (!navigator.geolocation) {
+            showToast(t('geo.notSupported'));
+            return;
+        }
+
+        showToast(t('geo.finding'));
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                updateUserLocation(position);
+                showToast(t('geo.moved'));
+            },
+            (error) => {
+                console.log('Geolocation error:', error.message);
+                showToast(t('geo.failed'));
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    };
+}
+
+// Map Search Logic
+let searchDebounceTimer;
+
+async function searchPlaces(query) {
+    if (!query || query.length < 2) {
+        searchResults.classList.add('hidden');
+        searchClearBtn.classList.add('hidden');
+        return;
+    }
+
+    searchClearBtn.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`, {
+            headers: { 'Accept-Language': userSettings.language || 'ko' }
+        });
+        const data = await response.json();
+        renderSearchResults(data);
+    } catch (err) {
+        console.error('Search error:', err);
+    }
+}
+
+function renderSearchResults(results) {
+    if (!results || results.length === 0) {
+        searchResults.classList.add('hidden');
+        return;
+    }
+
+    searchResults.innerHTML = '';
+    results.forEach(result => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+
+        // Split display name for better formatting
+        const parts = result.display_name.split(',');
+        const name = parts[0];
+        const address = parts.slice(1).join(',').trim();
+        const type = result.type || result.class || '';
+
+        item.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="search-result-name">${escapeHtml(name)}</span>
+                ${type ? `<span class="search-result-type">${escapeHtml(type)}</span>` : ''}
+            </div>
+            <span class="search-result-address">${escapeHtml(address)}</span>
+        `;
+
+        item.onclick = () => {
+            const lat = parseFloat(result.lat);
+            const lon = parseFloat(result.lon);
+            map.flyTo([lat, lon], 16);
+            searchResults.classList.add('hidden');
+            mapSearchInput.value = name;
+
+            // Remove existing search marker
+            if (searchMarker) {
+                map.removeLayer(searchMarker);
+            }
+
+            // Category Icons mapping
+            const categoryMap = {
+                'cafe': { icon: '☕', class: 'cafe' },
+                'bakery': { icon: '☕', class: 'cafe' },
+                'coffee_shop': { icon: '☕', class: 'cafe' },
+                'pub': { icon: '🍺', class: 'cafe' },
+                'bar': { icon: '🍺', class: 'cafe' },
+                'restaurant': { icon: '🍴', class: 'restaurant' },
+                'fast_food': { icon: '🍔', class: 'restaurant' },
+                'hotel': { icon: '🏨', class: 'hotel' },
+                'guest_house': { icon: '🏨', class: 'hotel' },
+                'motel': { icon: '🏨', class: 'hotel' },
+                'park': { icon: '🌳', class: 'park' },
+                'garden': { icon: '🌳', class: 'park' },
+                'forest': { icon: '🌲', class: 'park' },
+                'shop': { icon: '🛍️', class: 'shopping' },
+                'mall': { icon: '🛍️', class: 'shopping' },
+                'supermarket': { icon: '🛒', class: 'shopping' },
+                'bus_stop': { icon: '🚌', class: 'transport' },
+                'subway_entrance': { icon: '🚉', class: 'transport' },
+                'railway_station': { icon: '🚉', class: 'transport' },
+                'airport': { icon: '✈️', class: 'transport' }
+            };
+
+            const categoryInfo = categoryMap[type.toLowerCase().split(',')[0].trim()] || { icon: '📍', class: 'default' };
+
+            // Create new search marker with category icon
+            const icon = L.divIcon({
+                className: `category-pin ${categoryInfo.class}`,
+                html: `<div class="category-icon-inner">${categoryInfo.icon}</div>`,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18], // Center for circle
+                popupAnchor: [0, -18]
+            });
+
+            searchMarker = L.marker([lat, lon], { icon }).addTo(map);
+
+            // Add popup to the search marker
+            searchMarker.bindPopup(`
+                <div class="popup-content">
+                    <h3>${escapeHtml(name)}</h3>
+                    <p style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">${escapeHtml(address)}</p>
+                    <button class="edit-popup-btn" style="background: var(--primary);" onclick="window.addFromSearch('${escapeHtml(name)}', '${escapeHtml(address)}', ${lat}, ${lon})">저장하기</button>
+                </div>
+            `).openPopup();
+        };
+        searchResults.appendChild(item);
+    });
+    searchResults.classList.remove('hidden');
+}
+
+if (mapSearchInput) {
+    mapSearchInput.oninput = (e) => {
+        clearTimeout(searchDebounceTimer);
+        const query = e.target.value;
+
+        if (!query) {
+            searchResults.classList.add('hidden');
+            searchClearBtn.classList.add('hidden');
+            return;
+        }
+
+        searchDebounceTimer = setTimeout(() => {
+            searchPlaces(query);
+        }, 500);
+    };
+
+    // Close results when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!mapSearchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.add('hidden');
+        }
+    });
+
+    // Handle enter key to search immediately
+    mapSearchInput.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            clearTimeout(searchDebounceTimer);
+            searchPlaces(mapSearchInput.value);
+        }
+    };
+}
+
+if (searchClearBtn) {
+    searchClearBtn.onclick = () => {
+        mapSearchInput.value = '';
+        searchResults.classList.add('hidden');
+        searchClearBtn.classList.add('hidden');
+        if (searchMarker) {
+            map.removeLayer(searchMarker);
+            searchMarker = null;
+        }
+        mapSearchInput.focus();
+    };
+}
+
+// Global function to add from search
+window.addFromSearch = (name, address, lat, lon) => {
+    openModal(null, lat, lon, address);
+    document.getElementById('place-name').value = name;
+};
 
 // Start
 initMap();
