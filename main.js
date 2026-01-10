@@ -909,7 +909,7 @@ photoInput.onchange = async (e) => {
 
     // Check upload limits
     const currentPinPhotos = uploadedPhotos.length;
-    const PER_PIN_LIMIT = 3;
+    const PER_PIN_LIMIT = 10;
     const TOTAL_USER_LIMIT = 300;
 
     // Check per-pin limit
@@ -1662,6 +1662,11 @@ geoBtn.onclick = () => {
         (err) => {
             showToast(t('geo.failed'));
             console.error(err);
+        },
+        {
+            enableHighAccuracy: false, // 빠른 위치 탐지 (정확도 낮음)
+            timeout: 5000, // 5초 타임아웃
+            maximumAge: 30000 // 30초 이내 캐시된 위치 사용
         }
     );
 };
