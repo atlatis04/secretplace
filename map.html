@@ -15,6 +15,16 @@
   <div id="app">
     <div id="map"></div>
 
+    <!-- Search UI -->
+    <div class="search-container">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="map-search-input" placeholder="Search by place or location...">
+        <button id="search-clear-btn" class="hidden" title="Clear search">&times;</button>
+        <div id="search-results" class="search-results hidden"></div>
+      </div>
+    </div>
+
     <div class="map-controls-repositioned">
       <button id="auth-toggle-btn" class="glass-button square" title="Login/Logout">
         <span class="icon">👤</span>

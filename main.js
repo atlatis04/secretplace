@@ -395,12 +395,17 @@ const closeLightbox = document.getElementById('close-lightbox');
 const prevLightbox = document.getElementById('prev-lightbox');
 const nextLightbox = document.getElementById('next-lightbox');
 
+const mapSearchInput = document.getElementById('map-search-input');
+const searchResults = document.getElementById('search-results');
+const searchClearBtn = document.getElementById('search-clear-btn');
+
 let lightboxImages = [];
 let currentLightboxIndex = 0;
 
 let uploadedPhotos = [];
 let allPlaces = [];
 let isSignUpMode = false;
+let searchMarker = null; // Temporary marker for a selected search result
 
 // Initialize Map
 function initMap() {
@@ -1868,6 +1873,183 @@ function updateUILanguage() {
     }
 }
 
+// Map Search Logic
+let searchDebounceTimer;
+
+async function searchPlaces(query) {
+    if (!query || query.length < 2) {
+        searchResults.classList.add('hidden');
+        searchClearBtn.classList.add('hidden');
+        return;
+    }
+
+    searchClearBtn.classList.remove('hidden');
+
+    try {
+        console.log('🔍 Fetching search results for:', query);
+        const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Search Response Error:', response.status, errorText);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Search results data:', data);
+        const results = data.results || [];
+
+        if (results.length > 0) {
+            renderSearchResults(results);
+        } else {
+            searchResults.innerHTML = '<div class="search-result-item" style="color: #94a3b8; text-align: center; padding: 16px;">검색 결과가 없습니다</div>';
+            searchResults.classList.remove('hidden');
+        }
+    } catch (err) {
+        console.error('❌ Search Error:', err);
+        searchResults.innerHTML = '<div class="search-result-item" style="color: #ef4444; text-align: center; padding: 16px;">검색 중 오류가 발생했습니다</div>';
+        searchResults.classList.remove('hidden');
+    }
+}
+
+function renderSearchResults(results) {
+    if (!results || results.length === 0) {
+        searchResults.classList.add('hidden');
+        return;
+    }
+
+    searchResults.innerHTML = '';
+    results.forEach(result => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+
+        const name = result.display_name;
+        const address = result.address || '';
+        const type = result.type || '';
+
+        item.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="search-result-name">${escapeHtml(name)}</span>
+                ${type ? `<span class="search-result-type">${escapeHtml(type)}</span>` : ''}
+            </div>
+            <span class="search-result-address">${escapeHtml(address)}</span>
+        `;
+
+        item.onclick = () => {
+            const lat = parseFloat(result.lat);
+            const lon = parseFloat(result.lon);
+            map.flyTo([lat, lon], 16);
+            searchResults.classList.add('hidden');
+            mapSearchInput.value = name;
+
+            // Remove existing search marker
+            if (searchMarker) {
+                map.removeLayer(searchMarker);
+            }
+
+            // Category Icons mapping
+            const categoryMap = {
+                'cafe': { icon: '☕', class: 'cafe' },
+                'bakery': { icon: '☕', class: 'cafe' },
+                'coffee_shop': { icon: '☕', class: 'cafe' },
+                'pub': { icon: '🍺', class: 'cafe' },
+                'bar': { icon: '🍺', class: 'cafe' },
+                'restaurant': { icon: '🍴', class: 'restaurant' },
+                'fast_food': { icon: '🍔', class: 'restaurant' },
+                'hotel': { icon: '🏨', class: 'hotel' },
+                'guest_house': { icon: '🏨', class: 'hotel' },
+                'motel': { icon: '🏨', class: 'hotel' },
+                'park': { icon: '🌳', class: 'park' },
+                'garden': { icon: '🌳', class: 'park' },
+                'forest': { icon: '🌲', class: 'park' },
+                'shop': { icon: '🛍️', class: 'shopping' },
+                'mall': { icon: '🛍️', class: 'shopping' },
+                'supermarket': { icon: '🛒', class: 'shopping' },
+                'bus_stop': { icon: '🚌', class: 'transport' },
+                'subway_entrance': { icon: '🚉', class: 'transport' },
+                'railway_station': { icon: '🚉', class: 'transport' },
+                'airport': { icon: '✈️', class: 'transport' }
+            };
+
+            const categoryInfo = categoryMap[type.toLowerCase()] || { icon: '📍', class: 'default' };
+
+            // Create new search marker with category icon
+            const icon = L.divIcon({
+                className: `category-pin ${categoryInfo.class}`,
+                html: `<div class="category-icon-inner">${categoryInfo.icon}</div>`,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
+                popupAnchor: [0, -18]
+            });
+
+            searchMarker = L.marker([lat, lon], { icon }).addTo(map);
+
+            // Add popup to the search marker
+            searchMarker.bindPopup(`
+                <div class="popup-content">
+                    <h3>${escapeHtml(name)}</h3>
+                    <p style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">${escapeHtml(address)}</p>
+                    <button class="edit-popup-btn" style="background: var(--primary);" onclick="window.addFromSearch('${escapeHtml(name)}', '${escapeHtml(address)}', ${lat}, ${lon})">저장하기</button>
+                </div>
+            `).openPopup();
+        };
+        searchResults.appendChild(item);
+    });
+    searchResults.classList.remove('hidden');
+}
+
+if (mapSearchInput) {
+    mapSearchInput.oninput = (e) => {
+        clearTimeout(searchDebounceTimer);
+        const query = e.target.value;
+
+        if (!query) {
+            searchResults.classList.add('hidden');
+            searchClearBtn.classList.add('hidden');
+            return;
+        }
+
+        searchDebounceTimer = setTimeout(() => {
+            searchPlaces(query);
+        }, 500);
+    };
+
+    // Close results when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!mapSearchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.add('hidden');
+        }
+    });
+
+    // Handle enter key to search immediately
+    mapSearchInput.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            clearTimeout(searchDebounceTimer);
+            searchPlaces(mapSearchInput.value);
+        }
+    };
+}
+
+if (searchClearBtn) {
+    searchClearBtn.onclick = () => {
+        mapSearchInput.value = '';
+        searchResults.classList.add('hidden');
+        searchClearBtn.classList.add('hidden');
+        if (searchMarker) {
+            map.removeLayer(searchMarker);
+            searchMarker = null;
+        }
+        mapSearchInput.focus();
+    };
+}
+
+// Global function to add from search
+window.addFromSearch = (name, address, lat, lon) => {
+    openModal(null, lat, lon, address);
+    document.getElementById('place-name').value = name;
+};
+
 // Start
 initMap();
 updateUILanguage(); // Initialize UI with current language
+
