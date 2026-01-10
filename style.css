@@ -1310,3 +1310,51 @@ textarea {
         font-size: 13px;
     }
 }
+
+/* Current Location Marker */
+.current-location-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.current-location-pin {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.current-location-dot {
+    width: 12px;
+    height: 12px;
+    background: #3b82f6;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.6);
+    z-index: 2;
+    position: relative;
+}
+
+.current-location-pulse {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background: rgba(59, 130, 246, 0.3);
+    border-radius: 50%;
+    animation: pulse 2s ease-out infinite;
+    z-index: 1;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(2.5);
+        opacity: 0;
+    }
+}

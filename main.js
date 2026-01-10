@@ -1609,6 +1609,8 @@ closeModal.onclick = () => modalOverlay.classList.add('hidden');
 ratingInput.oninput = null; // Remove old listener
 
 // Geolocation Button
+let currentLocationMarker = null; // Store current location marker
+
 geoBtn.onclick = () => {
     if (!navigator.geolocation) {
         showToast(t('geo.notSupported'));
@@ -1620,6 +1622,41 @@ geoBtn.onclick = () => {
         (position) => {
             const { latitude, longitude } = position.coords;
             map.flyTo([latitude, longitude], 16);
+
+            // Remove existing current location marker if any
+            if (currentLocationMarker) {
+                map.removeLayer(currentLocationMarker);
+            }
+
+            // Create a custom icon for current location
+            const currentLocationIcon = L.divIcon({
+                className: 'current-location-marker',
+                html: `
+                    <div class="current-location-pin">
+                        <div class="current-location-pulse"></div>
+                        <div class="current-location-dot"></div>
+                    </div>
+                `,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            // Add marker at current location
+            currentLocationMarker = L.marker([latitude, longitude], {
+                icon: currentLocationIcon
+            }).addTo(map);
+
+            // Add popup
+            currentLocationMarker.bindPopup(`
+                <div class="popup-content">
+                    <h3>📍 현재 위치</h3>
+                    <p style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                        위도: ${latitude.toFixed(6)}<br>
+                        경도: ${longitude.toFixed(6)}
+                    </p>
+                </div>
+            `);
+
             showToast(t('geo.moved'));
         },
         (err) => {
