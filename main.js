@@ -425,8 +425,10 @@ function initMap() {
         reverseGeocode(lat, lng).then(address => {
             // 모달이 아직 열려있고 입력값이 기본값인 경우에만 업데이트
             const addrInput = document.getElementById('place-address');
-            if (!modalOverlay.classList.contains('hidden') && addrInput) {
-                addrInput.value = address;
+            const originalAddrInput = document.getElementById('place-address-original');
+            if (!modalOverlay.classList.contains('hidden')) {
+                if (addrInput) addrInput.value = address;
+                if (originalAddrInput) originalAddrInput.value = address;
             }
         });
     });
@@ -619,18 +621,13 @@ async function reverseGeocode(lat, lng) {
         });
         const data = await response.json();
 
-        console.log('Nominatim response:', data);
-
         // Format: "Country, City District" (e.g., South Korea, Seoul Jongno-gu)
         if (data.address) {
             const addr = data.address;
-            console.log('Address object:', addr);
 
             const country = addr.country || 'No country info';
             const city = addr.city || addr.province || addr.state || '';
             const district = addr.borough || addr.suburb || addr.district || addr.city_district || '';
-
-            console.log('Parsed Nominatim:', { country, city, district });
 
             let location = '';
             if (city && district) {
@@ -639,12 +636,9 @@ async function reverseGeocode(lat, lng) {
                 location = city || district || data.display_name?.split(', ')[0] || 'No location info';
             }
 
-            const result = `${location}, ${country}`;
-            console.log('Final Nominatim address:', result);
-            return result;
+            return `${location}, ${country}`;
         }
 
-        console.log('No address in Nominatim response');
         return 'No address information';
     } catch (err) {
         if (import.meta.env.DEV) {
@@ -2115,14 +2109,13 @@ window.addFromSearch = async (name, address, lat, lon) => {
     // Fetch address from Nominatim to ensure consistency with map click behavior
     const nominatimAddress = await reverseGeocode(lat, lon);
 
-    // Update the address field with Nominatim address
+    // Update both display and hidden address fields with Nominatim address
     const addrInput = document.getElementById('place-address');
-    if (addrInput) {
-        addrInput.value = nominatimAddress;
-    }
+    const originalAddrInput = document.getElementById('place-address-original');
+    if (addrInput) addrInput.value = nominatimAddress;
+    if (originalAddrInput) originalAddrInput.value = nominatimAddress;
 };
 
 // Start
 initMap();
 updateUILanguage(); // Initialize UI with current language
-

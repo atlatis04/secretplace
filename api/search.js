@@ -54,12 +54,7 @@ export default async function handler(req, res) {
 
         // Helper function to parse address components into standardized format
         function parseAddressComponents(components) {
-            if (!components || components.length === 0) {
-                console.log('No address components found');
-                return null;
-            }
-
-            console.log('Address components:', JSON.stringify(components, null, 2));
+            if (!components || components.length === 0) return null;
 
             let country = null;
             let city = null;
@@ -84,8 +79,6 @@ export default async function handler(req, res) {
                 }
             }
 
-            console.log('Parsed:', { country, city, district });
-
             // Format: "City District, Country" to match Nominatim format
             // Example: "Seoul Jongno-gu, South Korea"
             if (country) {
@@ -100,11 +93,9 @@ export default async function handler(req, res) {
                     location = 'No location info';
                 }
                 const result = `${location}, ${country}`;
-                console.log('Final address:', result);
                 return result;
             }
 
-            console.log('No country found, returning null');
             return null;
         }
 
