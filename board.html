@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Board | MapNote</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./board-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="board-app">
+        <!-- Header -->
+        <header class="board-header">
+            <div class="board-header-content">
+                <button id="back-to-map" class="back-btn">← Back to Map</button>
+                <h1>📋 Community Board</h1>
+                <button id="new-post-btn" class="primary-btn">+ New Post</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="board-main">
+            <!-- Filter Tabs -->
+            <div class="board-tabs">
+                <button class="tab-btn active" data-category="all">All</button>
+                <button class="tab-btn" data-category="review">Reviews</button>
+                <button class="tab-btn" data-category="tip">Tips</button>
+                <button class="tab-btn" data-category="question">Questions</button>
+            </div>
+
+            <!-- Posts List -->
+            <div id="posts-container" class="posts-container">
+                <!-- Posts will be dynamically loaded here -->
+            </div>
+        </main>
+
+        <!-- New Post Modal -->
+        <div id="post-modal" class="modal-overlay hidden">
+            <div class="modal board-modal">
+                <div class="modal-header">
+                    <h2 id="post-modal-title">New Post</h2>
+                    <button id="close-post-modal" class="close-btn">&times;</button>
+                </div>
+                <form id="post-form">
+                    <input type="hidden" id="post-id">
+
+                    <div class="form-group">
+                        <label for="post-category">Category</label>
+                        <select id="post-category" required>
+                            <option value="review">Review</option>
+                            <option value="tip">Tip</option>
+                            <option value="question">Question</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="post-title">Title</label>
+                        <input type="text" id="post-title" required placeholder="Enter post title">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="post-content">Content</label>
+                        <textarea id="post-content" rows="8" required placeholder="Write your post..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="cancel-post-btn" class="secondary-btn">Cancel</button>
+                        <button type="submit" class="primary-btn">Publish</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Post Detail Modal -->
+        <div id="detail-modal" class="modal-overlay hidden">
+            <div class="modal board-modal">
+                <div class="modal-header">
+                    <button id="close-detail-modal" class="close-btn">&times;</button>
+                </div>
+                <div id="post-detail-content" class="post-detail">
+                    <!-- Post detail will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./board.js"></script>
+</body>
+
+</html>

@@ -2232,8 +2232,11 @@ async function copyShareLink() {
         return;
     }
 
-    // Get only public places
-    const publicPlaces = allPlaces.filter(p => p.is_public);
+    // Use currently filtered places (what user sees on screen)
+    const placesToShare = currentFilteredPlaces.length > 0 ? currentFilteredPlaces : allPlaces;
+
+    // Only share public places from the filtered list
+    const publicPlaces = placesToShare.filter(p => p.is_public);
     if (publicPlaces.length === 0) {
         showToast(t('ui.noPlacesToShare') || '공유할 공개 장소가 없습니다.');
         return;
