@@ -54,7 +54,12 @@ export default async function handler(req, res) {
 
         // Helper function to parse address components into standardized format
         function parseAddressComponents(components) {
-            if (!components || components.length === 0) return null;
+            if (!components || components.length === 0) {
+                console.log('No address components found');
+                return null;
+            }
+
+            console.log('Address components:', JSON.stringify(components, null, 2));
 
             let country = null;
             let city = null;
@@ -62,20 +67,24 @@ export default async function handler(req, res) {
 
             for (const component of components) {
                 const types = component.types || [];
+                // Use longText or shortText depending on what's available
+                const text = component.longText || component.shortText || '';
 
                 if (types.includes('country')) {
-                    country = component.longText;
+                    country = text;
                 } else if (types.includes('locality')) {
                     // locality = city (e.g., Seoul, Busan)
-                    city = component.longText;
+                    city = text;
                 } else if (types.includes('sublocality_level_1') || types.includes('sublocality')) {
                     // sublocality = district/borough (e.g., Jongno-gu, Gangnam-gu)
-                    district = component.longText;
+                    district = text;
                 } else if (!district && types.includes('administrative_area_level_2')) {
                     // Fallback: administrative_area_level_2 can be district in some regions
-                    district = component.longText;
+                    district = text;
                 }
             }
+
+            console.log('Parsed:', { country, city, district });
 
             // Format: "City District, Country" to match Nominatim format
             // Example: "Seoul Jongno-gu, South Korea"
@@ -90,9 +99,12 @@ export default async function handler(req, res) {
                 } else {
                     location = 'No location info';
                 }
-                return `${location}, ${country}`;
+                const result = `${location}, ${country}`;
+                console.log('Final address:', result);
+                return result;
             }
 
+            console.log('No country found, returning null');
             return null;
         }
 
