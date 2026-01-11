@@ -431,7 +431,8 @@ function initMap() {
     map = L.map('map').setView(DEFAULT_COORD, 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
+        attribution: '© OpenStreetMap contributors',
+        crossOrigin: 'anonymous'  // Enable CORS for iOS Safari image capture
     }).addTo(map);
 
     // 클릭 시 모달 열기
@@ -2285,11 +2286,12 @@ async function loadSharedContent(shareKey) {
             return;
         }
 
-        // Fetch places by IDs
+        // Fetch places by IDs - ONLY public places
         const { data: places, error: placesError } = await supabase
             .from('places')
             .select('*')
-            .in('id', sharedInfo.place_ids);
+            .in('id', sharedInfo.place_ids)
+            .eq('is_public', true);
 
         if (placesError) throw placesError;
 
@@ -2427,7 +2429,7 @@ async function generateShareImage() {
         monthTimeline.appendChild(bar);
     });
 
-    // Capture map
+    // Capture map with iOS Safari optimizations
     const mapElement = document.getElementById('map');
     const controls = document.querySelectorAll('.leaflet-control-container, .search-container, .map-controls-repositioned, .sidebar');
 
@@ -2435,13 +2437,43 @@ async function generateShareImage() {
 
     let mapDataUrl = '';
     try {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait longer for tiles to fully load (especially important for iOS)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
         mapDataUrl = await htmlToImage.toPng(mapElement, {
-            quality: 1,
-            pixelRatio: 1
+            quality: 0.95,
+            pixelRatio: 1,
+            cacheBust: true,
+            skipFonts: true,
+            // iOS-specific optimizations
+            width: mapElement.offsetWidth,
+            height: mapElement.offsetHeight,
+            style: {
+                transform: 'none',
+                webkitTransform: 'none'
+            }
         });
     } catch (err) {
         console.error('Map capture failed:', err);
+
+        // Fallback: Try alternative method for iOS
+        try {
+            console.log('Trying alternative map capture method...');
+            const leafletPane = mapElement.querySelector('.leaflet-map-pane');
+            if (leafletPane) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                mapDataUrl = await htmlToImage.toPng(mapElement, {
+                    quality: 0.9,
+                    pixelRatio: 1,
+                    cacheBust: true,
+                    skipFonts: true,
+                    backgroundColor: '#1a1a2e'
+                });
+            }
+        } catch (fallbackErr) {
+            console.error('Alternative map capture also failed:', fallbackErr);
+            showToast('지도 캡처 실패. 잠시 후 다시 시도해주세요.');
+        }
     } finally {
         controls.forEach(c => c.style.visibility = 'visible');
     }
