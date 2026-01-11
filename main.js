@@ -611,6 +611,9 @@ function addMarkerToMap(place) {
         ? `<p class="popup-comment">${escapeHtml(place.comment)}</p>`
         : '';
 
+    // Show edit button only if: not in shared mode AND (no user logged in OR user owns this place)
+    const canEdit = !isSharedMode && (!currentUser || place.user_id === currentUser.id);
+
     const popupContent = `
         <div class="popup-content">
             <h3><span style="color: ${place.color}">●</span> ${escapeHtml(place.name)}</h3>
@@ -618,9 +621,9 @@ function addMarkerToMap(place) {
             <div class="popup-rating">${'★'.repeat(place.rating)}${'☆'.repeat(5 - place.rating)}</div>
             <p style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">${place.visit_date || 'No date specified'}</p>
             ${commentHtml}
-            <div class="popup-actions">
+            ${canEdit ? `<div class="popup-actions">
                 <button class="edit-popup-btn" onclick="window.editPlace('${place.id}')">${escapeHtml(t('ui.editDetails'))}</button>
-            </div>
+            </div>` : ''}
         </div>
     `;
 
@@ -2095,7 +2098,8 @@ function renderSearchResults(results) {
         item.onclick = () => {
             const lat = parseFloat(result.lat);
             const lon = parseFloat(result.lon);
-            map.flyTo([lat, lon], 16);
+
+            // Hide search results first
             searchResults.classList.add('hidden');
             mapSearchInput.value = name;
 
@@ -2103,6 +2107,12 @@ function renderSearchResults(results) {
             if (searchMarker) {
                 map.removeLayer(searchMarker);
             }
+
+            // Fly to location with smooth animation
+            map.flyTo([lat, lon], 16, {
+                duration: 1.0,
+                easeLinearity: 0.25
+            });
 
             // Category Icons mapping
             const categoryMap = {
@@ -2150,7 +2160,14 @@ function renderSearchResults(results) {
                     <p style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">${escapeHtml(displayAddressInPopup)}</p>
                     <button class="edit-popup-btn" style="background: var(--primary);" onclick="window.addFromSearch('${escapeHtml(name)}', '${escapeHtml(address)}', ${lat}, ${lon})">저장하기</button>
                 </div>
-            `).openPopup();
+            `);
+
+            // Open popup after map animation completes (better for mobile)
+            map.once('moveend', () => {
+                setTimeout(() => {
+                    searchMarker.openPopup();
+                }, 100);
+            });
         };
         searchResults.appendChild(item);
     });
@@ -2215,20 +2232,22 @@ async function copyShareLink() {
         return;
     }
 
-    // Get current filter states
-    const search = document.getElementById('place-filter')?.value || '';
-    const activeColorBtn = document.querySelector('.color-filter-dot.active');
-    const color = activeColorBtn?.dataset.color || 'all';
+    // Get only public places
+    const publicPlaces = allPlaces.filter(p => p.is_public);
+    if (publicPlaces.length === 0) {
+        showToast(t('ui.noPlacesToShare') || '공유할 공개 장소가 없습니다.');
+        return;
+    }
 
     try {
         // Create a unique share key (random string)
         const shareKey = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
 
-        // Save to shared_links table
+        // Save to shared_links table with place_ids
         const { error } = await supabase.from('shared_links').insert([{
             share_key: shareKey,
             user_id: currentUser.id,
-            filters: { search, color },
+            place_ids: publicPlaces.map(p => p.id),
             created_at: new Date()
         }]);
 
@@ -2249,7 +2268,7 @@ async function loadSharedContent(shareKey) {
         // Fetch shared link info
         const { data: sharedInfo, error: shareError } = await supabase
             .from('shared_links')
-            .select('*')
+            .select('place_ids')
             .eq('share_key', shareKey)
             .single();
 
@@ -2258,36 +2277,30 @@ async function loadSharedContent(shareKey) {
             return;
         }
 
-        // Fetch PUBLIC places for this user
+        if (!sharedInfo.place_ids || sharedInfo.place_ids.length === 0) {
+            showToast('공유된 장소가 없습니다.');
+            return;
+        }
+
+        // Fetch places by IDs
         const { data: places, error: placesError } = await supabase
             .from('places')
             .select('*')
-            .eq('user_id', sharedInfo.user_id)
-            .eq('is_public', true);
+            .in('id', sharedInfo.place_ids);
 
         if (placesError) throw placesError;
 
-        // Apply filters from snapshot
         allPlaces = places || [];
-
-        // Manually filter based on snapshot
-        const filters = sharedInfo.filters || {};
-        const filtered = allPlaces.filter(p => {
-            const matchesSearch = !filters.search ||
-                p.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-                p.address.toLowerCase().includes(filters.search.toLowerCase());
-            const matchesColor = filters.color === 'all' || p.color === filters.color;
-            return matchesSearch && matchesColor;
-        });
+        currentFilteredPlaces = allPlaces;
 
         // Toggle sidebar and show results
         sidebar.classList.remove('hidden');
-        renderFilteredList(filtered);
+        renderFilteredList(allPlaces);
 
         // Zoom to fit all markers
-        if (filtered.length > 0) {
-            const group = new L.featureGroup(markers);
-            map.fitBounds(group.getBounds().pad(0.1));
+        if (allPlaces.length > 0) {
+            const bounds = L.latLngBounds(allPlaces.map(p => [p.latitude, p.longitude]));
+            map.fitBounds(bounds, { padding: [50, 50] });
         }
 
         showToast(t('ui.viewingSharedList') || '공개된 공유 리스트를 보고 있습니다.');
