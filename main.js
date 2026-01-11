@@ -852,6 +852,9 @@ function openModal(place = null, lat = null, lng = null, address = '') {
         document.getElementById('modal-title').innerText = t('modal.editPlace');
         document.getElementById('place-id').value = place.id;
         document.getElementById('place-name').value = place.name;
+        // Store original English address in hidden field
+        document.getElementById('place-address-original').value = place.address || '';
+        // Display translated address in visible field
         document.getElementById('place-address').value = translateAddress(place.address) || '';
         document.getElementById('place-comment').value = place.comment || '';
         document.getElementById('visit-date').value = place.visit_date || '';
@@ -873,8 +876,10 @@ function openModal(place = null, lat = null, lng = null, address = '') {
         document.getElementById('place-id').value = '';
         document.getElementById('place-lat').value = lat;
         document.getElementById('place-lng').value = lng;
-        // Store address in English (original format), don't translate for storage
-        document.getElementById('place-address').value = address;
+        // Store original English address in hidden field
+        document.getElementById('place-address-original').value = address;
+        // Display translated address in visible field
+        document.getElementById('place-address').value = translateAddress(address);
         document.getElementById('place-comment').value = '';
 
         const today = new Date().toISOString().split('T')[0];
@@ -1007,7 +1012,8 @@ placeForm.onsubmit = async (e) => {
 
     const id = document.getElementById('place-id').value;
     const name = document.getElementById('place-name').value;
-    const address = document.getElementById('place-address').value;
+    // Use the original English address from hidden field for storage
+    const address = document.getElementById('place-address-original').value;
     const comment = document.getElementById('place-comment').value;
     const lat = parseFloat(document.getElementById('place-lat').value);
     const lng = parseFloat(document.getElementById('place-lng').value);
