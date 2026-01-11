@@ -41,7 +41,7 @@ export default async function handler(req, res) {
             },
             body: JSON.stringify({
                 textQuery: query,
-                languageCode: 'en'
+                languageCode: 'ko'
             })
         });
 
