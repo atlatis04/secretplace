@@ -619,12 +619,18 @@ async function reverseGeocode(lat, lng) {
         });
         const data = await response.json();
 
+        console.log('Nominatim response:', data);
+
         // Format: "Country, City District" (e.g., South Korea, Seoul Jongno-gu)
         if (data.address) {
             const addr = data.address;
+            console.log('Address object:', addr);
+
             const country = addr.country || 'No country info';
             const city = addr.city || addr.province || addr.state || '';
             const district = addr.borough || addr.suburb || addr.district || addr.city_district || '';
+
+            console.log('Parsed Nominatim:', { country, city, district });
 
             let location = '';
             if (city && district) {
@@ -633,9 +639,12 @@ async function reverseGeocode(lat, lng) {
                 location = city || district || data.display_name?.split(', ')[0] || 'No location info';
             }
 
-            return `${location}, ${country}`;
+            const result = `${location}, ${country}`;
+            console.log('Final Nominatim address:', result);
+            return result;
         }
 
+        console.log('No address in Nominatim response');
         return 'No address information';
     } catch (err) {
         if (import.meta.env.DEV) {
