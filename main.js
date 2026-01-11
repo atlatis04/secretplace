@@ -854,8 +854,8 @@ function openModal(place = null, lat = null, lng = null, address = '') {
         document.getElementById('place-name').value = place.name;
         // Store original English address in hidden field
         document.getElementById('place-address-original').value = place.address || '';
-        // Display translated address in visible field
-        document.getElementById('place-address').value = translateAddress(place.address) || '';
+        // Display English address in visible field
+        document.getElementById('place-address').value = place.address || '';
         document.getElementById('place-comment').value = place.comment || '';
         document.getElementById('visit-date').value = place.visit_date || '';
         updateStars(place.rating);
@@ -878,8 +878,8 @@ function openModal(place = null, lat = null, lng = null, address = '') {
         document.getElementById('place-lng').value = lng;
         // Store original English address in hidden field
         document.getElementById('place-address-original').value = address;
-        // Display translated address in visible field
-        document.getElementById('place-address').value = translateAddress(address);
+        // Display English address in visible field
+        document.getElementById('place-address').value = address;
         document.getElementById('place-comment').value = '';
 
         const today = new Date().toISOString().split('T')[0];
