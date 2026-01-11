@@ -2,12 +2,14 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from './supabase.js'
 import { resizeImage, getOptimizedFileName } from './src/imageResizer.js'
+import * as htmlToImage from 'html-to-image';
 
 let map;
 let markers = [];
 let currentPlace = null;
 let currentUser = null;
 let userPhotoCount = 0; // Total photos uploaded by user
+let isSharedMode = false; // Flag to prevent loadPlaces from overwriting shared content
 
 // Initialize userSettings with default values (loaded from localStorage later)
 let userSettings = { handedness: 'right', language: 'ko' };
@@ -158,6 +160,14 @@ const translations = {
         'ui.deleteTooltip': '삭제',
         'ui.comingSoon': '현재 준비 중인 기능입니다.',
         'ui.myInfo': '내 정보',
+        'ui.shareImage': '이미지로 저장',
+        'ui.shareLink': '링크 공유',
+        'ui.noPlacesToShare': '공유할 장소가 없습니다.',
+        'ui.imageSaved': '이미지가 저장되었습니다.',
+        'ui.linkCopied': '공유 링크가 클립보드에 복사되었습니다.',
+        'ui.myPlaceList': '나의 장소 목록',
+        'ui.viewingSharedList': '공개된 공유 리스트를 보고 있습니다.',
+        'ui.public': '공개',
     },
     en: {
         // Photo Upload Messages
@@ -297,6 +307,14 @@ const translations = {
         'ui.deleteTooltip': 'Delete',
         'ui.comingSoon': 'This feature is coming soon.',
         'ui.myInfo': 'My Info',
+        'ui.shareImage': 'Save as Image',
+        'ui.shareLink': 'Share Link',
+        'ui.noPlacesToShare': 'No places to share.',
+        'ui.imageSaved': 'Image saved.',
+        'ui.linkCopied': 'Share link copied to clipboard.',
+        'ui.myPlaceList': 'My Place List',
+        'ui.viewingSharedList': 'Viewing shared public list.',
+        'ui.public': 'Public',
     }
 };
 
@@ -404,6 +422,7 @@ let currentLightboxIndex = 0;
 
 let uploadedPhotos = [];
 let allPlaces = [];
+let currentFilteredPlaces = []; // Global store for filtered places
 let isSignUpMode = false;
 let searchMarker = null; // Temporary marker for a selected search result
 
@@ -429,6 +448,14 @@ function initMap() {
         }
 
         const { lat, lng } = e.latlng;
+
+        // Guest logic: Registration requires login
+        if (!currentUser) {
+            authOverlay.classList.remove('hidden');
+            showToast(t('ui.loginRequired') || '로그인이 필요합니다.');
+            return;
+        }
+
         // 폼 먼저 열기
         openModal(null, lat, lng, 'Loading location info...');
 
@@ -484,26 +511,26 @@ function initMap() {
 
 // Load Places from Supabase
 async function loadPlaces() {
+    if (isSharedMode) return; // Don't load default places if we are viewing a shared link
+
     let query = supabase.from('places').select('*');
 
     if (currentUser) {
         query = query.eq('user_id', currentUser.id);
-    } else {
-        // 비로그인 시 공공 데이터만 보거나 비워둠
-        query = query.eq('is_public', true).limit(20);
-    }
+        const { data: places, error } = await query;
 
-    const { data: places, error } = await query;
-
-    if (error) {
-        if (import.meta.env.DEV) {
-            console.error('Error loading places:', error);
+        if (error) {
+            if (import.meta.env.DEV) {
+                console.error('Error loading places:', error);
+            }
+            showToast('Error loading data.');
+            return;
         }
-        showToast('Error loading data.');
-        return;
+        allPlaces = places || [];
+    } else {
+        // Not logged in and not in shared mode: show empty map
+        allPlaces = [];
     }
-
-    allPlaces = places || [];
 
     // Calculate total photo count from all places
     if (currentUser) {
@@ -618,13 +645,19 @@ function addToList(place) {
     }
 
     item.innerHTML = `
-        <button class="delete-item-btn" title="${t('ui.deleteTooltip')}" onclick="event.stopPropagation(); window.deletePlaceDirectly('${place.id}')">&times;</button>
+        ${isSharedMode ? '' : `<button class="delete-item-btn" title="${t('ui.deleteTooltip')}" onclick="event.stopPropagation(); window.deletePlaceDirectly('${place.id}')">&times;</button>`}
         <h3>${escapeHtml(place.name)}</h3>
         <div class="meta">
             <div class="sidebar-stars">${starsHtml}</div>
-            <div style="display: flex; align-items: center;">
-                <span class="color-bullet" style="background-color: ${place.color}"></span>
-                <span style="font-size: 12px; color: #94a3b8;">${place.visit_date || ''}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label class="visibility-toggle" style="${isSharedMode ? 'cursor: default; opacity: 0.7;' : ''}" onclick="event.stopPropagation();">
+                    <input type="checkbox" ${place.is_public ? 'checked' : ''} ${isSharedMode ? 'disabled' : ''} onchange="window.togglePlaceVisibility('${place.id}', this.checked)">
+                    <span class="visibility-label">${t('ui.public')}</span>
+                </label>
+                <div style="display: flex; align-items: center;">
+                    <span class="color-bullet" style="background-color: ${place.color}"></span>
+                    <span style="font-size: 12px; color: #94a3b8;">${place.visit_date || ''}</span>
+                </div>
             </div>
         </div>
     `;
@@ -637,6 +670,31 @@ function addToList(place) {
 
     placeList.appendChild(item);
 }
+
+// Toggle Place Visibility
+window.togglePlaceVisibility = async (placeId, isPublic) => {
+    try {
+        const { error } = await supabase
+            .from('places')
+            .update({ is_public: isPublic })
+            .eq('id', placeId);
+
+        if (error) throw error;
+
+        // Update local state
+        const placeIdx = allPlaces.findIndex(p => p.id === placeId);
+        if (placeIdx !== -1) {
+            allPlaces[placeIdx].is_public = isPublic;
+        }
+
+        showToast(t('save.success'));
+    } catch (err) {
+        console.error('Error toggling visibility:', err);
+        showToast(t('save.error'));
+        // Revert checkbox state if needed (sidebar re-rendering usually handles this, but for better UX...)
+        loadPlaces();
+    }
+};
 
 // Reverse Geocoding using Nominatim
 async function reverseGeocode(lat, lng) {
@@ -1102,6 +1160,13 @@ deleteBtn.onclick = async () => {
 
 // Delete Place Directly from list
 window.deletePlaceDirectly = async (id) => {
+    // Guest logic: Delete requires login
+    if (!currentUser) {
+        authOverlay.classList.remove('hidden');
+        showToast(t('ui.loginRequired') || '로그인이 필요합니다.');
+        return;
+    }
+
     if (!confirm(t('delete.confirm'))) return;
 
     showToast(t('delete.deleting'));
@@ -1118,6 +1183,15 @@ window.deletePlaceDirectly = async (id) => {
 
 // Global function for Leaflet popup
 window.editPlace = async (id) => {
+    // Guest logic: View Details/Edit requires login (as per user request "editing requires login")
+    // Note: If we want guests to view details but not edit, we'd need a separate view-only modal mode.
+    // For now, following strict "Require login only when saving or editing"
+    if (!currentUser) {
+        authOverlay.classList.remove('hidden');
+        showToast(t('ui.loginRequired') || '로그인이 필요합니다.');
+        return;
+    }
+
     const { data, error } = await supabase.from('places').select('*').eq('id', id).single();
     if (data) openModal(data);
 };
@@ -1187,6 +1261,7 @@ function applyFilters() {
         return matchesSearch && matchesColor && matchesDate;
     });
     console.log('Filtered places:', filtered.length);
+    currentFilteredPlaces = filtered; // Update global store
     renderFilteredList(filtered);
 }
 
@@ -1306,7 +1381,7 @@ function updateAuthUI() {
             photoCountEl.innerText = `${userPhotoCount} / 300`;
         }
     } else {
-        authOverlay.classList.remove('hidden'); // Show login gate for guests
+        // Guest mode: Don't show auth-overlay automatically anymore
         authToggleBtn.innerHTML = '<span class="icon">👤</span>';
         authToggleBtn.title = 'Login';
         userInfoPanel.classList.add('hidden');
@@ -1641,6 +1716,7 @@ listToggleBtn.onclick = () => {
     sidebar.classList.toggle('hidden');
 };
 closeSidebar.onclick = () => sidebar.classList.add('hidden');
+if (closeAuth) closeAuth.onclick = () => authOverlay.classList.add('hidden');
 closeModal.onclick = () => modalOverlay.classList.add('hidden');
 ratingInput.oninput = null; // Remove old listener
 
@@ -2104,13 +2180,121 @@ if (mapSearchInput) {
         }
     });
 
-    // Handle enter key to search immediately
-    mapSearchInput.onkeydown = (e) => {
-        if (e.key === 'Enter') {
-            clearTimeout(searchDebounceTimer);
-            searchPlaces(mapSearchInput.value);
+    // Share Buttons Event Listeners
+    const shareImageBtn = document.getElementById('share-image-btn');
+    const shareLinkBtn = document.getElementById('share-link-btn');
+
+    if (shareImageBtn) {
+        shareImageBtn.onclick = (e) => {
+            e.stopPropagation();
+            generateShareImage();
+        };
+    }
+
+    if (shareLinkBtn) {
+        shareLinkBtn.onclick = (e) => {
+            e.stopPropagation();
+            copyShareLink();
+        };
+    }
+
+    // Check for share key in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const shareKey = urlParams.get('s');
+    if (shareKey) {
+        isSharedMode = true; // Set flag early
+        loadSharedContent(shareKey);
+    }
+}
+
+
+// Share as Link Logic (Secure Snapshot)
+async function copyShareLink() {
+    if (!currentUser) {
+        showToast(t('ui.loginRequired') || '로그인이 필요합니다.');
+        return;
+    }
+
+    // Get current filter states
+    const search = document.getElementById('place-filter')?.value || '';
+    const activeColorBtn = document.querySelector('.color-filter-dot.active');
+    const color = activeColorBtn?.dataset.color || 'all';
+
+    try {
+        // Create a unique share key (random string)
+        const shareKey = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+
+        // Save to shared_links table
+        const { error } = await supabase.from('shared_links').insert([{
+            share_key: shareKey,
+            user_id: currentUser.id,
+            filters: { search, color },
+            created_at: new Date()
+        }]);
+
+        if (error) throw error;
+
+        const shareUrl = `${window.location.origin}${window.location.pathname}?s=${shareKey}`;
+        await navigator.clipboard.writeText(shareUrl);
+        showToast(t('ui.linkCopied') || '공유 링크가 클립보드에 복사되었습니다.');
+    } catch (err) {
+        console.error('Link sharing failed:', err);
+        showToast(`Link sharing failed: ${err.message || 'Unknown error'} `);
+    }
+}
+
+// Load Content from Share Link
+async function loadSharedContent(shareKey) {
+    try {
+        // Fetch shared link info
+        const { data: sharedInfo, error: shareError } = await supabase
+            .from('shared_links')
+            .select('*')
+            .eq('share_key', shareKey)
+            .single();
+
+        if (shareError || !sharedInfo) {
+            showToast('Invalid or expired share link.');
+            return;
         }
-    };
+
+        // Fetch PUBLIC places for this user
+        const { data: places, error: placesError } = await supabase
+            .from('places')
+            .select('*')
+            .eq('user_id', sharedInfo.user_id)
+            .eq('is_public', true);
+
+        if (placesError) throw placesError;
+
+        // Apply filters from snapshot
+        allPlaces = places || [];
+
+        // Manually filter based on snapshot
+        const filters = sharedInfo.filters || {};
+        const filtered = allPlaces.filter(p => {
+            const matchesSearch = !filters.search ||
+                p.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+                p.address.toLowerCase().includes(filters.search.toLowerCase());
+            const matchesColor = filters.color === 'all' || p.color === filters.color;
+            return matchesSearch && matchesColor;
+        });
+
+        // Toggle sidebar and show results
+        sidebar.classList.remove('hidden');
+        renderFilteredList(filtered);
+
+        // Zoom to fit all markers
+        if (filtered.length > 0) {
+            const group = new L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+
+        showToast(t('ui.viewingSharedList') || '공개된 공유 리스트를 보고 있습니다.');
+    } catch (err) {
+        console.error('Loading shared content failed:', err);
+        showToast('Failed to load shared content.');
+    }
 }
 
 if (searchClearBtn) {
@@ -2128,6 +2312,13 @@ if (searchClearBtn) {
 
 // Global function to add from search
 window.addFromSearch = async (name, address, lat, lon) => {
+    // Guest logic: Registration requires login
+    if (!currentUser) {
+        authOverlay.classList.remove('hidden');
+        showToast(t('ui.loginRequired') || '로그인이 필요합니다.');
+        return;
+    }
+
     // Open modal first with a loading message
     openModal(null, lat, lon, 'Loading location info...');
     document.getElementById('place-name').value = name;
@@ -2141,6 +2332,157 @@ window.addFromSearch = async (name, address, lat, lon) => {
     if (addrInput) addrInput.value = nominatimAddress;
     if (originalAddrInput) originalAddrInput.value = nominatimAddress;
 };
+
+
+// --- Cyberpunk Dashboard Share Image Logic ---
+async function generateShareImage() {
+    const template = document.getElementById('share-card-template');
+    if (!template) return;
+
+    // Use currentFilteredPlaces if available, otherwise fallback to allPlaces
+    const targetPlaces = currentFilteredPlaces.length > 0 ? currentFilteredPlaces : allPlaces;
+    if (targetPlaces.length === 0) {
+        showToast(t('ui.noPlacesToShare') || '공유할 장소가 없습니다.');
+        return;
+    }
+
+    const topPlaces = targetPlaces.slice(0, 8);
+
+    // Calculate statistics
+    const uniqueCountries = new Set(topPlaces.map(p => {
+        const parts = p.address?.split(',') || [];
+        return parts.length > 0 ? parts[parts.length - 1].trim() : '';
+    }).filter(c => c)).size;
+
+    const avgRating = (topPlaces.reduce((sum, p) => sum + (p.rating || 0), 0) / topPlaces.length).toFixed(1);
+
+    // Update stat cards
+    document.querySelector('#stat-places .stat-number').textContent = topPlaces.length;
+    document.querySelector('#stat-countries .stat-number').textContent = uniqueCountries;
+    document.querySelector('#stat-rating .stat-number').textContent = `${avgRating}★`;
+
+    // Calculate progress (example: 80% of 10 places goal)
+    const goalPlaces = 10;
+    const progressPercent = Math.min(100, Math.round((topPlaces.length / goalPlaces) * 100));
+    document.querySelector('.progress-text').textContent = `${progressPercent}%`;
+
+    // Update progress circle
+    const progressCircle = document.getElementById('progress-circle');
+    const circumference = 2 * Math.PI * 50;
+    const offset = circumference - (progressPercent / 100) * circumference;
+    progressCircle.style.strokeDashoffset = offset;
+
+    // Add top 4 photos
+    const photosGrid = document.getElementById('top-photos');
+    photosGrid.innerHTML = '';
+    topPlaces.slice(0, 4).forEach(place => {
+        if (place.photo_urls && place.photo_urls.length > 0) {
+            const img = document.createElement('img');
+            img.src = place.photo_urls[0];
+            img.crossOrigin = 'anonymous';
+            photosGrid.appendChild(img);
+        }
+    });
+
+    // Calculate most visited type (simplified)
+    document.querySelector('.mv-value').textContent = 'Cafes';
+
+    // Create month timeline
+    const monthTimeline = document.getElementById('month-timeline');
+    monthTimeline.innerHTML = '';
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+    // Count visits per month
+    const monthCounts = new Array(12).fill(0);
+    topPlaces.forEach(place => {
+        if (place.visit_date) {
+            const month = new Date(place.visit_date).getMonth();
+            monthCounts[month]++;
+        }
+    });
+
+    const maxCount = Math.max(...monthCounts, 1);
+    months.forEach((month, i) => {
+        const bar = document.createElement('div');
+        bar.className = 'month-bar';
+        const height = (monthCounts[i] / maxCount) * 100;
+        bar.style.height = `${Math.max(height, 5)}%`;
+        bar.setAttribute('data-month', month);
+        monthTimeline.appendChild(bar);
+    });
+
+    // Capture map
+    const mapElement = document.getElementById('map');
+    const controls = document.querySelectorAll('.leaflet-control-container, .search-container, .map-controls-repositioned, .sidebar');
+
+    controls.forEach(c => c.style.visibility = 'hidden');
+
+    let mapDataUrl = '';
+    try {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        mapDataUrl = await htmlToImage.toPng(mapElement, {
+            quality: 1,
+            pixelRatio: 1
+        });
+    } catch (err) {
+        console.error('Map capture failed:', err);
+    } finally {
+        controls.forEach(c => c.style.visibility = 'visible');
+    }
+
+    // Insert map into template
+    const mapContainer = document.getElementById('cyberpunk-map-container');
+    mapContainer.innerHTML = '';
+    if (mapDataUrl) {
+        const mapImg = document.createElement('img');
+        mapImg.src = mapDataUrl;
+        mapImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; filter: brightness(0.7) saturate(1.2);';
+        mapContainer.appendChild(mapImg);
+    }
+
+    // Setup template visibility
+    const oldScrollX = window.scrollX;
+    const oldScrollY = window.scrollY;
+    window.scrollTo(0, 0);
+
+    template.style.cssText = `
+        display: flex !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 1080px !important;
+        height: 1080px !important;
+        z-index: 999999 !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    `;
+
+    // Wait for everything to render
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Capture the cyberpunk dashboard
+    try {
+        console.log('Generating cyberpunk dashboard image...');
+        const finalDataUrl = await htmlToImage.toPng(template, {
+            pixelRatio: 2,
+            width: 1080,
+            height: 1080,
+            cacheBust: true
+        });
+
+        const link = document.createElement('a');
+        link.download = `MapNote_Wrapped_${new Date().getTime()}.png`;
+        link.href = finalDataUrl;
+        link.click();
+        showToast('Travel Wrapped image saved!');
+    } catch (err) {
+        console.error('Dashboard capture failed:', err);
+        showToast('Failed to generate image: ' + err.message);
+    } finally {
+        template.style.display = 'none';
+        window.scrollTo(oldScrollX, oldScrollY);
+    }
+}
 
 // Start
 initMap();

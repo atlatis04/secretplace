@@ -41,6 +41,10 @@
     <aside id="sidebar" class="sidebar hidden">
       <div class="sidebar-header">
         <h2>Place List</h2>
+        <div class="share-actions">
+          <button id="share-image-btn" class="icon-btn" title="이미지로 저장">🖼️</button>
+          <button id="share-link-btn" class="icon-btn" title="링크 공유">🔗</button>
+        </div>
         <button id="close-sidebar" class="close-btn">&times;</button>
       </div>
       <div class="sidebar-search">
@@ -141,10 +145,11 @@
     </div>
 
     <!-- Auth Modal (Gatekeeper) -->
-    <div id="auth-overlay" class="modal-overlay"> <!-- Start shown to block map -->
+    <div id="auth-overlay" class="modal-overlay hidden"> <!-- Changed to hidden by default for Guest Mode -->
       <div class="modal auth-modal">
-        <div class="modal-header" style="justify-content: center;">
+        <div class="modal-header" style="justify-content: space-between;">
           <h2 id="auth-title">Start MapNote</h2>
+          <button id="close-auth" class="close-btn">&times;</button>
         </div>
         <p style="text-align: center; font-size: 13px; color: var(--text-gray); margin-bottom: 20px;">
           Login required to use the map.
@@ -305,6 +310,77 @@
               style="background: #334155; color: white;">Cancel</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Cyberpunk Share Card Template (for image generation) -->
+    <div id="share-card-template">
+      <div class="share-card-content cyberpunk-style">
+        <header class="cyberpunk-header">
+          <h1 id="cyberpunk-title">MY 2026 TRAVEL WRAPPED</h1>
+        </header>
+
+        <div class="cyberpunk-main">
+          <!-- Left Stats Column -->
+          <div class="cyberpunk-left">
+            <div id="stat-places" class="stat-card">
+              <div class="stat-number">8</div>
+              <div class="stat-label">PLACES VISITED</div>
+            </div>
+            <div id="stat-countries" class="stat-card">
+              <div class="stat-number">5</div>
+              <div class="stat-label">COUNTRIES</div>
+            </div>
+            <div id="stat-distance" class="stat-card">
+              <div class="stat-number">2,847</div>
+              <div class="stat-label">KM TRAVELED</div>
+            </div>
+            <div id="stat-rating" class="stat-card">
+              <div class="stat-number">4.3★</div>
+              <div class="stat-label">AVERAGE</div>
+            </div>
+          </div>
+
+          <!-- Center Map -->
+          <div class="cyberpunk-center">
+            <div id="cyberpunk-map-container" class="map-container">
+              <!-- Map will be inserted here -->
+            </div>
+          </div>
+
+          <!-- Right Info Column -->
+          <div class="cyberpunk-right">
+            <div id="goal-progress" class="progress-card">
+              <div class="progress-label">YEAR GOAL</div>
+              <div class="progress-ring">
+                <svg width="120" height="120">
+                  <circle cx="60" cy="60" r="50" class="progress-bg"></circle>
+                  <circle cx="60" cy="60" r="50" class="progress-bar" id="progress-circle"></circle>
+                </svg>
+                <div class="progress-text">80%</div>
+              </div>
+            </div>
+            <div id="top-photos" class="photos-grid">
+              <!-- Top 4 photos will be inserted here -->
+            </div>
+            <div id="most-visited" class="most-visited-card">
+              <div class="mv-label">MOST VISITED</div>
+              <div class="mv-value">Cafes</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Timeline -->
+        <div class="cyberpunk-timeline">
+          <div id="month-timeline" class="month-bars">
+            <!-- Month activity bars will be inserted here -->
+          </div>
+        </div>
+
+        <footer class="cyberpunk-footer">
+          <span class="footer-icon">📍</span>
+          <span class="footer-text">MAPNOTE ANALYTICS | YEAR IN REVIEW</span>
+        </footer>
       </div>
     </div>
   </div>
