@@ -12,7 +12,7 @@ let userPhotoCount = 0; // Total photos uploaded by user
 let isSharedMode = false; // Flag to prevent loadPlaces from overwriting shared content
 
 // Initialize userSettings with default values (loaded from localStorage later)
-let userSettings = { handedness: 'right', language: 'ko' };
+let userSettings = { handedness: 'right', language: 'ko', mapStyle: 'default' };
 
 // Date filter range
 let currentFilterDateRange = { from: null, to: null };
@@ -140,6 +140,11 @@ const translations = {
         'ui.rightHanded': '오른손잡이',
         'ui.leftHanded': '왼손잡이',
         'ui.korean': '한국어',
+        'ui.mapStyle': '지도 스타일',
+        'ui.mapStyleDefault': '기본',
+        'ui.mapStyleDark': '다크',
+        'ui.mapStyleLight': '라이트',
+        'ui.mapStyleSatellite': '위성',
         'ui.english': 'English',
 
         // UI Text - Password Change Modal
@@ -287,6 +292,11 @@ const translations = {
         'ui.rightHanded': 'Right-handed',
         'ui.leftHanded': 'Left-handed',
         'ui.korean': 'Korean',
+        'ui.mapStyle': 'Map Style',
+        'ui.mapStyleDefault': 'Default',
+        'ui.mapStyleDark': 'Dark',
+        'ui.mapStyleLight': 'Light',
+        'ui.mapStyleSatellite': 'Satellite',
         'ui.english': 'English',
 
         // UI Text - Password Change Modal
@@ -427,13 +437,33 @@ let isSignUpMode = false;
 let searchMarker = null; // Temporary marker for a selected search result
 
 // Initialize Map
+// Map tile layer configurations
+const MAP_STYLES = {
+    default: {
+        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '© OpenStreetMap contributors'
+    },
+    dark: {
+        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        attribution: '© OpenStreetMap © CARTO'
+    },
+    light: {
+        url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        attribution: '© OpenStreetMap © CARTO'
+    },
+    satellite: {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attribution: '© Esri'
+    }
+};
+
+let currentTileLayer = null;
+
 function initMap() {
     map = L.map('map').setView(DEFAULT_COORD, 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        crossOrigin: 'anonymous'  // Enable CORS for iOS Safari image capture
-    }).addTo(map);
+    // Apply saved map style
+    applyMapStyle(userSettings.mapStyle || 'default');
 
     // 클릭 시 모달 열기
     map.on('click', (e) => {
@@ -699,6 +729,22 @@ window.togglePlaceVisibility = async (placeId, isPublic) => {
         loadPlaces();
     }
 };
+
+// Apply Map Style
+function applyMapStyle(styleName) {
+    const style = MAP_STYLES[styleName] || MAP_STYLES.default;
+
+    // Remove existing tile layer
+    if (currentTileLayer) {
+        map.removeLayer(currentTileLayer);
+    }
+
+    // Add new tile layer
+    currentTileLayer = L.tileLayer(style.url, {
+        attribution: style.attribution,
+        crossOrigin: 'anonymous'
+    }).addTo(map);
+}
 
 // Reverse Geocoding using Nominatim
 async function reverseGeocode(lat, lng) {
@@ -1423,9 +1469,10 @@ logoutBtn.onclick = async () => {
 const settingsBtn = document.getElementById('settings-btn');
 const settingsModal = document.getElementById('settings-modal');
 const closeSettings = document.getElementById('close-settings');
-const saveSettingsBtn = document.getElementById('save-settings-btn');
 const handednessSelect = document.getElementById('handedness-select');
 const languageSelect = document.getElementById('language-select');
+const mapStyleSelect = document.getElementById('map-style-select');
+const saveSettingsBtn = document.getElementById('save-settings-btn');
 
 // Load settings from localStorage
 function loadSettings() {
@@ -1434,7 +1481,7 @@ function loadSettings() {
         const settings = JSON.parse(saved);
         return settings;
     }
-    return { handedness: 'right', language: 'ko' };
+    return { handedness: 'right', language: 'ko', mapStyle: 'default' };
 }
 
 // Save settings to localStorage
@@ -1527,6 +1574,8 @@ function updateMarkerPopupOffsets(handedness) {
 const savedSettings = loadSettings();
 userSettings = savedSettings; // Update global variable
 applyHandedness(userSettings.handedness);
+// applyMapStyle call removed from here because map is not yet initialized. 
+// It is correctly called inside initMap().
 
 if (settingsBtn) {
     settingsBtn.onclick = () => {
@@ -1534,6 +1583,7 @@ if (settingsBtn) {
         const settings = loadSettings();
         handednessSelect.value = settings.handedness;
         languageSelect.value = settings.language;
+        mapStyleSelect.value = settings.mapStyle || 'default'; // Ensure default if not set
         settingsModal.classList.remove('hidden');
         userInfoPanel.classList.add('hidden');
     };
@@ -1549,12 +1599,17 @@ if (saveSettingsBtn) {
     saveSettingsBtn.onclick = () => {
         const newSettings = {
             handedness: handednessSelect.value,
-            language: languageSelect.value
+            language: languageSelect.value,
+            mapStyle: mapStyleSelect.value
         };
         const languageChanged = userSettings.language !== newSettings.language;
+        const mapStyleChanged = userSettings.mapStyle !== newSettings.mapStyle;
 
         saveSettings(newSettings);
         applyHandedness(newSettings.handedness);
+        if (mapStyleChanged) {
+            applyMapStyle(newSettings.mapStyle);
+        }
         userSettings = newSettings; // Update global userSettings
         settingsModal.classList.add('hidden');
 
@@ -1964,6 +2019,15 @@ function updateUILanguage() {
     const languageOptions = document.querySelectorAll('#language-select option');
     if (languageOptions[0]) languageOptions[0].innerText = t('ui.korean');
     if (languageOptions[1]) languageOptions[1].innerText = t('ui.english');
+
+    const mapStyleLabel = document.querySelectorAll('#settings-modal label')[2];
+    if (mapStyleLabel) mapStyleLabel.innerText = t('ui.mapStyle');
+
+    const mapStyleOptions = document.querySelectorAll('#map-style-select option');
+    if (mapStyleOptions[0]) mapStyleOptions[0].innerText = t('ui.mapStyleDefault');
+    if (mapStyleOptions[1]) mapStyleOptions[1].innerText = t('ui.mapStyleDark');
+    if (mapStyleOptions[2]) mapStyleOptions[2].innerText = t('ui.mapStyleLight');
+    if (mapStyleOptions[3]) mapStyleOptions[3].innerText = t('ui.mapStyleSatellite');
 
     const saveSettingsBtn = document.getElementById('save-settings-btn');
     if (saveSettingsBtn) saveSettingsBtn.innerText = t('ui.save');
