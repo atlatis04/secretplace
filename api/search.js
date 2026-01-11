@@ -37,11 +37,11 @@ export default async function handler(req, res) {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Goog-Api-Key': apiKey,
-                'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.types'
+                'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.types,places.addressComponents'
             },
             body: JSON.stringify({
                 textQuery: query,
-                languageCode: 'ko'
+                languageCode: 'en'
             })
         });
 
@@ -52,15 +52,64 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: data.error.message });
         }
 
+        // Helper function to parse address components into standardized format
+        function parseAddressComponents(components) {
+            if (!components || components.length === 0) return null;
+
+            let country = null;
+            let city = null;
+            let district = null;
+
+            for (const component of components) {
+                const types = component.types || [];
+
+                if (types.includes('country')) {
+                    country = component.longText;
+                } else if (types.includes('locality')) {
+                    // locality = city (e.g., Seoul, Busan)
+                    city = component.longText;
+                } else if (types.includes('sublocality_level_1') || types.includes('sublocality')) {
+                    // sublocality = district/borough (e.g., Jongno-gu, Gangnam-gu)
+                    district = component.longText;
+                } else if (!district && types.includes('administrative_area_level_2')) {
+                    // Fallback: administrative_area_level_2 can be district in some regions
+                    district = component.longText;
+                }
+            }
+
+            // Format: "City District, Country" to match Nominatim format
+            // Example: "Seoul Jongno-gu, South Korea"
+            if (country) {
+                let location = '';
+                if (city && district) {
+                    location = `${city} ${district}`;
+                } else if (city) {
+                    location = city;
+                } else if (district) {
+                    location = district;
+                } else {
+                    location = 'No location info';
+                }
+                return `${location}, ${country}`;
+            }
+
+            return null;
+        }
+
         // Standardize response for frontend
-        const standardizedResults = (data.places || []).map(place => ({
-            display_name: place.displayName?.text || '알 수 없는 장소',
-            address: place.formattedAddress,
-            lat: place.location?.latitude,
-            lon: place.location?.longitude,
-            type: place.types && place.types.length > 0 ? place.types[0] : 'place',
-            types_full: place.types
-        }));
+        const standardizedResults = (data.places || []).map(place => {
+            // Try to parse address components first for standardized format
+            const parsedAddress = parseAddressComponents(place.addressComponents);
+
+            return {
+                display_name: place.displayName?.text || '알 수 없는 장소',
+                address: parsedAddress || place.formattedAddress || 'No address information',
+                lat: place.location?.latitude,
+                lon: place.location?.longitude,
+                type: place.types && place.types.length > 0 ? place.types[0] : 'place',
+                types_full: place.types
+            };
+        });
 
         return res.status(200).json({ results: standardizedResults });
     } catch (error) {

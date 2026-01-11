@@ -873,7 +873,8 @@ function openModal(place = null, lat = null, lng = null, address = '') {
         document.getElementById('place-id').value = '';
         document.getElementById('place-lat').value = lat;
         document.getElementById('place-lng').value = lng;
-        document.getElementById('place-address').value = translateAddress(address);
+        // Store address in English (original format), don't translate for storage
+        document.getElementById('place-address').value = address;
         document.getElementById('place-comment').value = '';
 
         const today = new Date().toISOString().split('T')[0];
@@ -1969,12 +1970,15 @@ function renderSearchResults(results) {
         const address = result.address || '';
         const type = result.type || '';
 
+        // Translate address for display if user language is Korean
+        const displayAddress = translateAddress(address);
+
         item.innerHTML = `
             <div style="display: flex; align-items: center; justify-content: space-between;">
                 <span class="search-result-name">${escapeHtml(name)}</span>
                 ${type ? `<span class="search-result-type">${escapeHtml(type)}</span>` : ''}
             </div>
-            <span class="search-result-address">${escapeHtml(address)}</span>
+            <span class="search-result-address">${escapeHtml(displayAddress)}</span>
         `;
 
         item.onclick = () => {
@@ -2027,10 +2031,12 @@ function renderSearchResults(results) {
             searchMarker = L.marker([lat, lon], { icon }).addTo(map);
 
             // Add popup to the search marker
+            // Display translated address in popup but pass original English address to addFromSearch
+            const displayAddressInPopup = translateAddress(address);
             searchMarker.bindPopup(`
                 <div class="popup-content">
                     <h3>${escapeHtml(name)}</h3>
-                    <p style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">${escapeHtml(address)}</p>
+                    <p style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">${escapeHtml(displayAddressInPopup)}</p>
                     <button class="edit-popup-btn" style="background: var(--primary);" onclick="window.addFromSearch('${escapeHtml(name)}', '${escapeHtml(address)}', ${lat}, ${lon})">저장하기</button>
                 </div>
             `).openPopup();
@@ -2086,9 +2092,19 @@ if (searchClearBtn) {
 }
 
 // Global function to add from search
-window.addFromSearch = (name, address, lat, lon) => {
-    openModal(null, lat, lon, address);
+window.addFromSearch = async (name, address, lat, lon) => {
+    // Open modal first with a loading message
+    openModal(null, lat, lon, 'Loading location info...');
     document.getElementById('place-name').value = name;
+
+    // Fetch address from Nominatim to ensure consistency with map click behavior
+    const nominatimAddress = await reverseGeocode(lat, lon);
+
+    // Update the address field with Nominatim address
+    const addrInput = document.getElementById('place-address');
+    if (addrInput) {
+        addrInput.value = nominatimAddress;
+    }
 };
 
 // Start
