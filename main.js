@@ -417,6 +417,17 @@ function initMap() {
 
     // 클릭 시 모달 열기
     map.on('click', (e) => {
+        // UI 영역(상단 바, 좌우측 바) 클릭 시 무시
+        const point = map.mouseEventToContainerPoint(e.originalEvent);
+        const width = map.getSize().x;
+
+        const TOP_BAND = 80; // 검색바 영역 높이
+        const SIDE_BAND = 60; // 좌우측 버튼 영역 너비
+
+        if (point.y < TOP_BAND || point.x < SIDE_BAND || point.x > (width - SIDE_BAND)) {
+            return;
+        }
+
         const { lat, lng } = e.latlng;
         // 폼 먼저 열기
         openModal(null, lat, lng, 'Loading location info...');
@@ -453,6 +464,21 @@ function initMap() {
         updateAuthUI();
 
         loadPlaces();
+    });
+
+    // UI 요소 클릭 시 지도 클릭 이벤트 전파 방지 (장소 등록 중복 방지)
+    const uiContainers = [
+        document.querySelector('.search-container'),
+        document.querySelector('.map-controls-repositioned'),
+        document.getElementById('user-info-panel'),
+        document.getElementById('date-filter-panel'),
+        document.getElementById('sidebar')
+    ];
+
+    uiContainers.forEach(container => {
+        if (container) {
+            L.DomEvent.disableClickPropagation(container);
+        }
     });
 }
 
