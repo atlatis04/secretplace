@@ -28,7 +28,7 @@
       padding: 0 20px;
     }
 
-    /* Scroll Animation Base Styles */
+    /* Scroll Animation */
     .reveal {
       opacity: 0;
       transform: translateY(30px);
@@ -74,7 +74,9 @@
     }
 
     @keyframes pulse {
-      0% {
+
+      0%,
+      100% {
         transform: translate(-50%, -50%) scale(1);
         opacity: 0.5;
       }
@@ -82,11 +84,6 @@
       50% {
         transform: translate(-50%, -50%) scale(1.1);
         opacity: 0.8;
-      }
-
-      100% {
-        transform: translate(-50%, -50%) scale(1);
-        opacity: 0.5;
       }
     }
 
@@ -123,72 +120,12 @@
       font-size: 20px;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
-      position: relative;
-      overflow: hidden;
     }
 
     .cta-btn:hover {
       transform: translateY(-4px);
       box-shadow: 0 20px 40px rgba(59, 130, 246, 0.5);
       background: var(--primary-hover);
-    }
-
-    /* Dynamic Visual Section */
-    .dynamic-visual {
-      margin: 80px auto;
-      max-width: 900px;
-      height: 400px;
-      background: rgba(30, 41, 59, 0.3);
-      border-radius: 24px;
-      border: 1px solid var(--glass-border);
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      backdrop-filter: blur(5px);
-    }
-
-    .map-mockup-pin {
-      font-size: 80px;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
-      animation: float 3s ease-in-out infinite;
-    }
-
-    .map-mockup-card {
-      position: absolute;
-      bottom: 40px;
-      right: 60px;
-      background: rgba(15, 23, 42, 0.9);
-      padding: 20px;
-      border-radius: 16px;
-      border: 1px solid var(--glass-border);
-      width: 200px;
-      transform: translateY(100px);
-      opacity: 0;
-      transition: all 1s ease;
-    }
-
-    .dynamic-visual:hover .map-mockup-card,
-    .dynamic-visual.active .map-mockup-card {
-      transform: translateY(0);
-      opacity: 1;
-    }
-
-    @keyframes float {
-
-      0%,
-      100% {
-        transform: translate(-50%, -50%);
-      }
-
-      50% {
-        transform: translate(-50%, -60%);
-      }
     }
 
     /* Features Grid */
@@ -207,8 +144,6 @@
       text-align: left;
       transition: all 0.4s ease;
       backdrop-filter: blur(10px);
-      position: relative;
-      overflow: hidden;
     }
 
     .feature-card:hover {
@@ -218,16 +153,10 @@
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
     }
 
-    .feature-icon-wrapper {
-      width: 64px;
-      height: 64px;
-      background: rgba(59, 130, 246, 0.1);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .feature-icon {
+      font-size: 48px;
       margin-bottom: 24px;
-      font-size: 32px;
+      display: block;
     }
 
     .feature-card h3 {
@@ -261,6 +190,10 @@
         font-size: 42px;
       }
 
+      .hero p {
+        font-size: 18px;
+      }
+
       .container {
         padding: 0 24px;
       }
@@ -281,83 +214,64 @@
 
     <section class="hero reveal">
       <div class="hero-bg-glow"></div>
-      <h1>당신의 모든 순간을<br>지도 위에 기록하세요</h1>
+      <h1>나만의 감성 지도 기록<br>MapNote</h1>
       <p>
-        소중한 추억이 잊혀지지 않도록,<br>
-        감정과 사진 그리고 그곳의 공기까지 저장합니다.
+        전세계 어디서나, 당신의 순간을 지도에 기록하세요.<br>
+        매일 작성하는 기록의 힘으로 소중한 추억을 영원히 간직하세요.
       </p>
       <a href="/map.html" class="cta-btn">
-        지도 시작하기 <span class="icon">➜</span>
+        지금 시작하기 <span class="icon">➜</span>
       </a>
-
-      <!-- Dynamic Visual Element -->
-      <div class="dynamic-visual reveal stagger-delay-2"
-        style="background-image: url('/public/gyeongju_map_bg.png'); background-size: cover; background-position: center;">
-        <div class="map-mockup-pin">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="80" height="80"
-            style="filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));">
-            <path fill="#ef4444"
-              d="M12 0C7.58 0 4 3.58 4 8c0 5.25 7 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" />
-          </svg>
-        </div>
-        <div
-          style="position:absolute; width:100%; height:100%; background: radial-gradient(circle, transparent 20%, rgba(15, 23, 42, 0.4) 80%);">
-        </div>
-        <!-- Animated Elements -->
-        <div class="map-mockup-card">
-          <div style="font-weight:700; color:white; margin-bottom:4px;">경주 황리단길 카페</div>
-          <div style="font-size:12px; color:#94a3b8;">⭐⭐⭐⭐⭐</div>
-          <div style="font-size:12px; color:#cbd5e1; margin-top:8px;">가을 바람이 좋았던 날, 따뜻한 라떼 한잔.</div>
-        </div>
-      </div>
     </section>
 
     <section class="features">
-      <!-- 1. Free Location -->
+      <!-- 1. 매일 작성하는 기록의 힘 -->
       <div class="feature-card reveal">
-        <div class="feature-icon-wrapper">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
-            <path fill="#ef4444"
-              d="M12 0C7.58 0 4 3.58 4 8c0 5.25 7 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" />
-          </svg>
-        </div>
-        <h3>자유로운 위치 기록</h3>
-        <p>정해진 장소가 아니어도 괜찮습니다. 당신이 서 있는 바로 그곳을 핀으로 고정하고 나만의 장소로 만드세요.</p>
+        <span class="feature-icon">📝</span>
+        <h3>매일 작성하는 기록의 힘</h3>
+        <p>하루하루 쌓이는 기록이 당신의 인생 스토리가 됩니다. 매일 방문한 장소와 느낀 감정을 기록하며 성장하세요.</p>
       </div>
 
-      <!-- 2. Smart Location -->
+      <!-- 2. 전세계 어디서나 리뷰 -->
       <div class="feature-card reveal stagger-delay-1">
-        <div class="feature-icon-wrapper">🛰️</div>
-        <h3>스마트 위치 추적</h3>
-        <p>고정밀 GPS 기술을 활용해 현재 위치를 즉시 파악하고, 자동으로 주소를 변환하여 입력해 드립니다.</p>
+        <span class="feature-icon">🌍</span>
+        <h3>전세계 어디서나 리뷰</h3>
+        <p>서울의 카페부터 파리의 레스토랑까지, 지구상 어느 위치든 자유롭게 핀을 꽂고 당신만의 리뷰를 남기세요.</p>
       </div>
 
-      <!-- 3. Emotional Log -->
+      <!-- 3. 기간 및 핀 필터링 -->
       <div class="feature-card reveal stagger-delay-2">
-        <div class="feature-icon-wrapper">📝</div>
-        <h3>감성 로깅</h3>
-        <p>단순한 방문 기록을 넘어, 그때의 기분, 날씨, 감정을 텍스트와 별점으로 섬세하게 남길 수 있습니다.</p>
+        <span class="feature-icon">🔍</span>
+        <h3>스마트 필터링</h3>
+        <p>기간별, 색상별, 평점별로 기록을 필터링하세요. 원하는 추억을 빠르게 찾아 다시 떠올릴 수 있습니다.</p>
       </div>
 
-      <!-- 4. Multimedia -->
+      <!-- 4. 지도 기반 다이어리 -->
       <div class="feature-card reveal">
-        <div class="feature-icon-wrapper">📸</div>
-        <h3>멀티미디어 추억</h3>
-        <p>텍스트로는 부족한 순간들, 고화질 사진을 함께 저장하세요. 갤러리 뷰어로 생생하게 회상할 수 있습니다.</p>
+        <span class="feature-icon">🗺️</span>
+        <h3>지도에 작성하는 다이어리</h3>
+        <p>일반 다이어리와 다르게 지도 위에 기록을 남깁니다. 시각적으로 당신의 발자취를 한눈에 확인하세요.</p>
       </div>
 
-      <!-- 5. Privacy -->
+      <!-- 5. 솔직한 개인 리뷰 -->
       <div class="feature-card reveal stagger-delay-1">
-        <div class="feature-icon-wrapper">🔒</div>
-        <h3>완벽한 프라이버시</h3>
-        <p>철저한 보안으로 보호됩니다. 오직 나만 볼 수 있는 비밀스러운 공간에 솔직한 이야기를 담아보세요.</p>
+        <span class="feature-icon">💭</span>
+        <h3>솔직한 나만의 리뷰</h3>
+        <p>타인의 시선을 의식하지 않고 오직 나만 볼 수 있는 공간에서 진솔한 감정과 생각을 자유롭게 표현하세요.</p>
       </div>
 
-      <!-- 6. Omni-present -->
+      <!-- 6. Google API 장소 검색 -->
       <div class="feature-card reveal stagger-delay-2">
-        <div class="feature-icon-wrapper">📱</div>
-        <h3>언제 어디서나</h3>
-        <p>PC, 태블릿, 모바일 등 모든 기기에서 완벽하게 작동합니다. 설치형 앱처럼 부드러운 사용성을 경험하세요.</p>
+        <span class="feature-icon">🔎</span>
+        <h3>Google API 장소 검색</h3>
+        <p>Google Places API를 활용한 강력한 검색 기능으로 전세계 모든 장소를 빠르게 찾아 기록할 수 있습니다.</p>
+      </div>
+
+      <!-- 7. 다국어 및 편의성 -->
+      <div class="feature-card reveal stagger-delay-3">
+        <span class="feature-icon">🌐</span>
+        <h3>모두를 위한 편의성</h3>
+        <p>한글과 영어를 지원하며, 왼손잡이와 오른손잡이 모두를 위한 UI 배치 옵션을 제공합니다.</p>
       </div>
     </section>
 
@@ -378,7 +292,7 @@
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             entry.target.classList.add('active');
-            observer.unobserve(entry.target); // Put this to animate only once
+            observer.unobserve(entry.target);
           }
         });
       }, observerOptions);
