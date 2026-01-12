@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
                 input: {
                     main: resolve(__dirname, 'index.html'),
                     map: resolve(__dirname, 'map.html'),
+                    board: resolve(__dirname, 'board.html'),
                 },
             },
         },
