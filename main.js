@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css'
 import { supabase } from './supabase.js'
 import { resizeImage, getOptimizedFileName } from './src/imageResizer.js'
 import * as htmlToImage from 'html-to-image';
+import { getUserProfile, updateNickname } from './profile-manager.js'
 
 let map;
 let markers = [];
@@ -173,6 +174,22 @@ const translations = {
         'ui.myPlaceList': '나의 장소 목록',
         'ui.viewingSharedList': '공개된 공유 리스트를 보고 있습니다.',
         'ui.public': '공개',
+        'auth.nicknameUpdated': '닉네임이 성공적으로 변경되었습니다.',
+        'auth.nicknameUpdateFailed': '닉네임 변경 실패',
+        'ui.changeNickname': '닉네임 변경',
+        'ui.newNickname': '새 닉네임',
+        'ui.nicknamePlaceholder': '새 닉네임을 입력하세요',
+        'ui.nicknameHelp': '영문, 숫자, 공백, 하이픈, 언더바만 가능 (최대 30자)',
+        'ui.update': '수정하기',
+        'ui.nickname': '닉네임',
+        'auth.errorNicknameTaken': '이미 사용 중인 닉네임입니다.',
+        'auth.errorNicknameEmpty': '닉네임을 입력해 주세요.',
+        'auth.errorNicknameTooLong': '닉네임은 30자 이내여야 합니다.',
+        'auth.errorNicknameInvalid': '영문, 숫자, 공백, 하이픈, 언더바만 가능합니다.',
+        'auth.provider.email': '이메일 로그인',
+        'auth.provider.google': '구글 로그인',
+        'auth.provider.kakao': '카카오 로그인',
+        'auth.provider.naver': '네이버 로그인',
     },
     en: {
         // Photo Upload Messages
@@ -325,6 +342,22 @@ const translations = {
         'ui.myPlaceList': 'My Place List',
         'ui.viewingSharedList': 'Viewing shared public list.',
         'ui.public': 'Public',
+        'auth.nicknameUpdated': 'Nickname updated successfully.',
+        'auth.nicknameUpdateFailed': 'Failed to update nickname',
+        'ui.changeNickname': 'Change Nickname',
+        'ui.newNickname': 'New Nickname',
+        'ui.nicknamePlaceholder': 'Enter new nickname',
+        'ui.nicknameHelp': 'Letters, numbers, spaces, hyphens, and underscores only (max 30 characters)',
+        'ui.update': 'Update',
+        'ui.nickname': 'Nickname',
+        'auth.errorNicknameTaken': 'This nickname is already taken.',
+        'auth.errorNicknameEmpty': 'Nickname cannot be empty.',
+        'auth.errorNicknameTooLong': 'Nickname must be 30 characters or less.',
+        'auth.errorNicknameInvalid': 'Nickname can only contain letters, numbers, spaces, hyphens, and underscores.',
+        'auth.provider.email': 'Email Login',
+        'auth.provider.google': 'Google Login',
+        'auth.provider.kakao': 'Kakao Login',
+        'auth.provider.naver': 'Naver Login',
     }
 };
 
@@ -357,6 +390,7 @@ const closeModal = document.getElementById('close-modal');
 const placeList = document.getElementById('place-list');
 const deleteBtn = document.getElementById('delete-btn');
 const toast = document.getElementById('toast');
+const boardBtn = document.getElementById('board-btn');
 
 // Sidebar Filter Elements
 const colorFilterGroup = document.getElementById('color-filter-group');
@@ -538,6 +572,18 @@ function initMap() {
             L.DomEvent.disableClickPropagation(container);
         }
     });
+
+    // Board button event listener with auth check
+    if (boardBtn) {
+        boardBtn.addEventListener('click', () => {
+            if (!currentUser) {
+                authOverlay.classList.remove('hidden');
+                showToast(t('ui.loginRequired') || '로그인이 필요합니다.');
+                return;
+            }
+            window.location.href = './board.html';
+        });
+    }
 }
 
 // Load Places from Supabase
@@ -1423,21 +1469,96 @@ function updateAuthUI() {
         // Populate User Info Panel
         userInfoEmail.innerText = currentUser.email;
         userAvatarInitial.innerText = currentUser.email[0].toUpperCase();
-        userInfoProvider.innerText = currentUser.app_metadata.provider === 'email' ? t('auth.emailLogin') : `${currentUser.app_metadata.provider} 로그인`;
+
+        const provider = currentUser.app_metadata.provider || 'email';
+        userInfoProvider.innerText = t(`auth.provider.${provider}`);
 
         // Update photo count display
         const photoCountEl = document.getElementById('user-photo-count');
         if (photoCountEl) {
             photoCountEl.innerText = `${userPhotoCount} / 300`;
         }
+
+        // Fetch and display nickname
+        getUserProfile(currentUser.id).then(profile => {
+            if (profile) {
+                const nicknameEl = document.getElementById('user-info-nickname');
+                if (nicknameEl) nicknameEl.innerText = profile.nickname;
+            }
+        });
     } else {
         // Guest mode: Don't show auth-overlay automatically anymore
         authToggleBtn.innerHTML = '<span class="icon">👤</span>';
         authToggleBtn.title = 'Login';
         userInfoPanel.classList.add('hidden');
     }
-
 }
+
+// Nickname Event Listeners
+function initNicknameListeners() {
+    const editBtn = document.getElementById('edit-nickname-inline-btn');
+    const modal = document.getElementById('nickname-change-modal');
+    const closeBtn = document.getElementById('close-nickname-change');
+    const cancelBtn = document.getElementById('cancel-nickname-change');
+    const form = document.getElementById('nickname-change-form');
+    const newNicknameInput = document.getElementById('new-nickname');
+
+    if (editBtn) {
+        editBtn.onclick = () => {
+            modal.classList.remove('hidden');
+            const currentNickname = document.getElementById('user-info-nickname').innerText;
+            newNicknameInput.value = currentNickname;
+        };
+    }
+
+    if (closeBtn) closeBtn.onclick = () => modal.classList.add('hidden');
+    if (cancelBtn) cancelBtn.onclick = () => modal.classList.add('hidden');
+
+    if (form) {
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const newNickname = newNicknameInput.value.trim();
+            const errorMsgEl = document.getElementById('nickname-error-msg');
+
+            if (errorMsgEl) errorMsgEl.classList.add('hidden');
+            if (!currentUser) return;
+
+            const result = await updateNickname(currentUser.id, newNickname);
+            if (result.success) {
+                showToast(t('auth.nicknameUpdated'));
+                const nicknameEl = document.getElementById('user-info-nickname');
+                if (nicknameEl) nicknameEl.innerText = newNickname;
+                modal.classList.add('hidden');
+                if (errorMsgEl) errorMsgEl.classList.add('hidden');
+            } else {
+                let errorText = result.error || t('auth.nicknameUpdateFailed');
+
+                // Map backend errors to localized strings
+                if (errorText === 'This nickname is already taken') {
+                    errorText = t('auth.errorNicknameTaken');
+                } else if (errorText === 'Nickname cannot be empty') {
+                    errorText = t('auth.errorNicknameEmpty');
+                } else if (errorText === 'Nickname must be 30 characters or less') {
+                    errorText = t('auth.errorNicknameTooLong');
+                } else if (errorText === 'Nickname can only contain letters, numbers, spaces, hyphens, and underscores') {
+                    errorText = t('auth.errorNicknameInvalid');
+                }
+
+                if (errorMsgEl) {
+                    errorMsgEl.innerText = errorText;
+                    errorMsgEl.classList.remove('hidden');
+                }
+                showToast(errorText, true);
+            }
+        };
+    }
+}
+
+// Call during init
+document.addEventListener('DOMContentLoaded', () => {
+    initNicknameListeners();
+});
+
 
 authToggleBtn.onclick = (e) => {
     e.stopPropagation();
@@ -1842,10 +1963,18 @@ geoBtn.onclick = () => {
     );
 };
 
-function showToast(msg) {
+function showToast(msg, isError = false) {
+    if (isError) {
+        toast.classList.add('error');
+    } else {
+        toast.classList.remove('error');
+    }
     toast.innerText = msg;
     toast.classList.remove('hidden');
-    setTimeout(() => toast.classList.add('hidden'), 3000);
+    setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('error');
+    }, 3500);
 }
 
 // Update UI Language
@@ -1855,9 +1984,6 @@ function updateUILanguage() {
     // Sidebar
     const sidebarHeader = document.querySelector('#sidebar h2');
     if (sidebarHeader) sidebarHeader.innerText = t('ui.placeList');
-
-    const placeFilterInput = document.getElementById('place-filter');
-    if (placeFilterInput) placeFilterInput.placeholder = t('ui.searchPlaceholder');
 
     // Place Modal
     const modalTitle = document.getElementById('modal-title');
@@ -2093,6 +2219,42 @@ function updateUILanguage() {
     if (allPlaces && allPlaces.length > 0) {
         applyFilters();
     }
+
+    // Nickname Modal
+    const nicknameModalHeader = document.querySelector('#nickname-change-modal h2');
+    if (nicknameModalHeader) nicknameModalHeader.innerText = t('ui.changeNickname');
+
+    const nicknameLabel = document.querySelector('label[for="new-nickname"]');
+    if (nicknameLabel) nicknameLabel.innerText = t('ui.newNickname');
+
+    const nicknameInput = document.getElementById('new-nickname');
+    if (nicknameInput) nicknameInput.placeholder = t('ui.nicknamePlaceholder');
+
+    const nicknameHelp = document.getElementById('new-nickname-help');
+    if (nicknameHelp) {
+        nicknameHelp.innerText = t('ui.nicknameHelp');
+    }
+
+    const nicknameSubmitBtn = document.getElementById('submit-nickname-change');
+    if (nicknameSubmitBtn) nicknameSubmitBtn.innerText = t('ui.update');
+
+    const nicknameCancelBtn = document.getElementById('cancel-nickname-change');
+    if (nicknameCancelBtn) nicknameCancelBtn.innerText = t('ui.cancel');
+
+    // Inline nickname label in user info panel
+    const inlineNicknameLabel = document.getElementById('user-info-nickname-label');
+    if (inlineNicknameLabel) inlineNicknameLabel.innerText = t('ui.nickname');
+
+    const uploadedImagesLabel = document.getElementById('uploaded-images-label');
+    if (uploadedImagesLabel) uploadedImagesLabel.innerText = t('ui.uploadedImages');
+
+    // Update login provider info
+    if (currentUser) {
+        const provider = currentUser.app_metadata.provider || 'email';
+        const userInfoProvider = document.getElementById('user-info-provider');
+        if (userInfoProvider) userInfoProvider.innerText = t(`auth.provider.${provider}`);
+    }
+
 }
 
 // Map Search Logic

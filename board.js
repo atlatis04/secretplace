@@ -71,7 +71,10 @@ async function loadPosts() {
     try {
         let query = supabase
             .from('posts')
-            .select('*')
+            .select(`
+                *,
+                profiles (nickname)
+            `)
             .order('created_at', { ascending: false });
 
         if (currentCategory !== 'all') {
@@ -124,7 +127,7 @@ function renderPosts(posts) {
                 <h3 class="post-title">${escapeHtml(post.title)}</h3>
                 <p class="post-preview">${escapeHtml(post.content.substring(0, 80))}${post.content.length > 80 ? '...' : ''}</p>
             </div>
-            <div class="post-author">User</div>
+            <div class="post-author">${post.profiles?.nickname || 'User'}</div>
             <div class="post-date">${formatDate(post.created_at)}</div>
             <div class="post-actions">
                 ${canDelete ? `<button class="post-delete-btn" onclick="event.stopPropagation(); window.deletePost('${post.id}')" title="Delete">&times;</button>` : ''}
@@ -141,7 +144,10 @@ window.viewPost = async (postId) => {
     try {
         const { data: post, error } = await supabase
             .from('posts')
-            .select('*')
+            .select(`
+                *,
+                profiles (nickname)
+            `)
             .eq('id', postId)
             .single();
 
@@ -155,7 +161,7 @@ window.viewPost = async (postId) => {
                 <span class="post-date">${formatDate(post.created_at)}</span>
             </div>
             <h2 class="post-detail-title">${escapeHtml(post.title)}</h2>
-            <div class="post-detail-author">by User</div>
+            <div class="post-detail-author">by ${post.profiles?.nickname || 'User'}</div>
             <div class="post-detail-content">${escapeHtml(post.content).replace(/\n/g, '<br>')}</div>
             ${canEdit ? `
                 <div class="post-detail-actions">

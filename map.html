@@ -174,7 +174,6 @@
               style="width: 100%; justify-content: center;">Don't have an account? Sign Up</button>
           </div>
         </form>
-
         <div class="social-divider">
           <span>Or sign in with</span>
         </div>
@@ -187,6 +186,7 @@
             <span class="icon">K</span> Start with Kakao (Coming Soon)
           </button>
         </div>
+
       </div>
     </div>
 
@@ -196,13 +196,26 @@
         <div class="user-avatar" id="user-avatar-initial">U</div>
         <div class="user-details">
           <p id="user-info-email" class="email">user@email.com</p>
+          <div style="margin-top: 8px;">
+            <span id="user-info-nickname-label"
+              style="font-size: 11px; color: var(--text-gray); display: block; margin-bottom: 2px;">Nickname</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <p id="user-info-nickname" style="font-size: 14px; font-weight: 600; color: white; margin: 0;">Nickname
+              </p>
+              <button id="edit-nickname-inline-btn"
+                style="background: none; border: none; cursor: pointer; padding: 2px; display: flex; align-items: center;"
+                title="Edit Nickname">
+                <span style="font-size: 12px; opacity: 0.7;">✏️</span>
+              </button>
+            </div>
+          </div>
           <p class="provider" id="user-info-provider">Email Login</p>
         </div>
       </div>
       <div
         style="padding: 12px 0; border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); margin: 12px 0;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 13px; color: var(--text-gray);">Uploaded Images</span>
+          <span id="uploaded-images-label" style="font-size: 13px; color: var(--text-gray);">Uploaded Images</span>
           <span id="user-photo-count" style="font-size: 14px; font-weight: 700; color: var(--primary);">0 / 300</span>
         </div>
       </div>
@@ -328,6 +341,34 @@
       </div>
     </div>
 
+    <!-- Nickname Change Modal -->
+    <div id="nickname-change-modal" class="modal-overlay hidden" style="z-index: 4000;">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Change Nickname</h2>
+          <button id="close-nickname-change" class="close-btn">&times;</button>
+        </div>
+        <form id="nickname-change-form">
+          <div id="nickname-error-msg" class="error-msg hidden"
+            style="color: var(--danger); font-size: 13px; margin-bottom: 16px; padding: 12px; background: rgba(239, 68, 68, 0.15); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3); font-weight: 500;">
+          </div>
+          <div class="form-group">
+            <label for="new-nickname" style="color: var(--text-gray);">New Nickname</label>
+            <input type="text" id="new-nickname" required placeholder="Enter new nickname" maxlength="30">
+            <p id="new-nickname-help" style="font-size: 12px; color: var(--text-gray); margin-top: 8px;">Letters,
+              numbers, spaces, hyphens, and
+              underscores only (max 30 characters)</p>
+          </div>
+          <div class="modal-footer" style="display: flex; gap: 12px; margin-top: 24px;">
+            <button type="submit" id="submit-nickname-change" class="primary-btn"
+              style="flex: 1; margin: 0; padding: 12px; border-radius: 8px; font-weight: 600; border: none; height: 45px; display: flex; align-items: center; justify-content: center;">Update</button>
+            <button type="button" id="cancel-nickname-change" class="secondary-btn"
+              style="background: #475569; color: white; flex: 1; margin: 0; padding: 12px; border-radius: 8px; font-weight: 600; border: none; height: 45px; display: flex; align-items: center; justify-content: center;">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Cyberpunk Share Card Template (for image generation) -->
     <div id="share-card-template">
       <div class="share-card-content cyberpunk-style">
@@ -401,7 +442,6 @@
   </div>
 
   <script type="module" src="./main.js"></script>
-  <script src="./board-nav.js"></script>
 </body>
 
 </html>

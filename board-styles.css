@@ -120,7 +120,7 @@
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
-    color: #6b7280;
+    color: #4b5563;
     border-radius: 6px;
 }
 
@@ -152,7 +152,7 @@
     border-bottom: 1px solid #e5e7eb;
     font-size: 12px;
     font-weight: 700;
-    color: #6b7280;
+    color: #4b5563;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -231,8 +231,8 @@
 }
 
 .post-preview {
-    font-size: 12px;
-    color: #9ca3af;
+    font-size: 13px;
+    color: #6b7280;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -241,7 +241,7 @@
 
 .post-author {
     font-size: 13px;
-    color: #6b7280;
+    color: #4b5563;
     display: flex;
     align-items: center;
     font-weight: 500;
@@ -249,7 +249,7 @@
 
 .post-date {
     font-size: 12px;
-    color: #9ca3af;
+    color: #6b7280;
     display: flex;
     align-items: center;
 }
@@ -267,7 +267,7 @@
     border-radius: 4px;
     border: 1px solid #e5e7eb;
     background: white;
-    color: #6b7280;
+    color: #4b5563;
     font-size: 18px;
     font-weight: 700;
     cursor: pointer;
@@ -288,7 +288,7 @@
 .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #9ca3af;
+    color: #6b7280;
     font-size: 14px;
 }
 
@@ -316,23 +316,23 @@
 .post-detail-title {
     font-size: 24px;
     font-weight: 700;
-    color: #1f2937;
+    color: #ffffff;
     margin-bottom: 16px;
     line-height: 1.4;
 }
 
 .post-detail-author {
     font-size: 14px;
-    color: #9ca3af;
+    color: #94a3b8;
     margin-bottom: 24px;
     font-weight: 600;
 }
 
 .post-detail-content {
-    color: #374151;
+    color: #e2e8f0;
     line-height: 1.7;
     margin-bottom: 28px;
-    font-size: 15px;
+    font-size: 16px;
 }
 
 .post-detail-actions {

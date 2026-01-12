@@ -796,6 +796,12 @@ textarea {
     animation: slideUp 0.3s ease;
 }
 
+.toast.error {
+    background: #ef4444;
+    color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
 @keyframes slideUp {
     from {
         transform: translate(-50%, 20px);
