@@ -1458,6 +1458,22 @@ document.addEventListener('click', (e) => {
 });
 dateFilterPanel.onclick = (e) => e.stopPropagation();
 
+// Quick Date Filter button logic
+document.querySelectorAll('.quick-date-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const year = btn.dataset.year;
+        if (year && dateFromInput && dateToInput) {
+            dateFromInput.value = `${year}-01-01`;
+            dateToInput.value = `${year}-12-31`;
+
+            // Programmatically click apply button
+            if (applyDateFilterBtn) {
+                applyDateFilterBtn.click();
+            }
+        }
+    });
+});
+
 
 // Auth Logic
 function updateAuthUI() {
