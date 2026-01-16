@@ -2782,10 +2782,7 @@ if (googleLoginBtn) {
     googleLoginBtn.addEventListener('click', async () => {
         try {
             const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: window.location.origin + '/map.html'
-                }
+                provider: 'google'
             });
 
             if (error) throw error;
