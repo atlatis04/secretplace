@@ -109,7 +109,7 @@ const translations = {
         'ui.leaveNote': '이 장소에 대한 기록을 남겨보세요',
 
         // UI Text - Auth Modal
-        'ui.startMapNote': 'MapNote 시작하기',
+        'ui.startMapNote': 'Maplog 시작하기',
         'ui.signUp': '회원가입',
         'ui.loginRequired': '지도를 이용하려면 로그인이 필요합니다.',
         'ui.email': '이메일',
@@ -277,7 +277,7 @@ const translations = {
         'ui.leaveNote': 'Leave a note about this place',
 
         // UI Text - Auth Modal
-        'ui.startMapNote': 'Start MapNote',
+        'ui.startMapNote': 'Start Maplog',
         'ui.signUp': 'Sign Up',
         'ui.loginRequired': 'Login required to use the map.',
         'ui.email': 'Email',
