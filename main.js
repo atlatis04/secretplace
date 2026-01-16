@@ -2781,8 +2781,14 @@ const googleLoginBtn = document.getElementById('auth-google');
 if (googleLoginBtn) {
     googleLoginBtn.addEventListener('click', async () => {
         try {
+            // Get the current page URL to redirect back after OAuth
+            const currentUrl = window.location.href;
+
             const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'google'
+                provider: 'google',
+                options: {
+                    redirectTo: currentUrl
+                }
             });
 
             if (error) throw error;
