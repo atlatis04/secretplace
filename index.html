@@ -256,23 +256,23 @@
       const pin = document.createElement('div');
       pin.className = 'photo-pin';
 
-      // 랜덤 위치 설정 (이미지 크기가 커졌으므로 좀 더 안쪽으로 배치하되 정중앙은 피함)
+      // 랜덤 위치 설정 (핀 크기를 고려하여 중앙 글자 영역을 완전히 피함)
       let left, top;
       let isSafe = false;
 
-      // 중앙 영역(글자 영역)을 피하기 위한 재시도 로직
-      while (!isSafe) {
-        left = 2 + Math.random() * 85;
-        top = 2 + Math.random() * 80;
+      // 핀의 크기를 고려한 안전 영역 배치
+      // 핀은 4개의 코너 영역에만 배치: 좌상, 우상, 좌하, 우하
+      const corners = [
+        { leftMin: 0, leftMax: 20, topMin: 0, topMax: 25 },      // 좌상단
+        { leftMin: 75, leftMax: 95, topMin: 0, topMax: 25 },     // 우상단
+        { leftMin: 0, leftMax: 20, topMin: 70, topMax: 95 },     // 좌하단
+        { leftMin: 75, leftMax: 95, topMin: 70, topMax: 95 }     // 우하단
+      ];
 
-        // 중앙 거부 영역 설정 (가로 25%~75%, 세로 20%~70%)
-        const inCenterHorizontal = left > 25 && left < 75;
-        const inCenterVertical = top > 20 && top < 70;
-
-        if (!(inCenterHorizontal && inCenterVertical)) {
-          isSafe = true;
-        }
-      }
+      // 랜덤하게 코너 선택
+      const corner = corners[i % corners.length];
+      left = corner.leftMin + Math.random() * (corner.leftMax - corner.leftMin);
+      top = corner.topMin + Math.random() * (corner.topMax - corner.topMin);
 
       // 랜덤 회전값 설정
       const rot = -15 + Math.random() * 30; // -15deg ~ 15deg
