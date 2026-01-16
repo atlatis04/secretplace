@@ -118,6 +118,7 @@ const translations = {
         'ui.noAccount': '계정이 없으신가요? 회원가입',
         'ui.haveAccount': '이미 계정이 있으신가요? 로그인',
         'ui.orSignIn': '또는 소셜 로그인',
+        'ui.googleSignup': '구글로 시작하기',
         'ui.naverSignup': '네이버로 시작하기 (준비 중)',
         'ui.kakaoSignup': '카카오로 시작하기 (준비 중)',
 
@@ -286,6 +287,7 @@ const translations = {
         'ui.noAccount': 'Don\'t have an account? Sign Up',
         'ui.haveAccount': 'Already have an account? Login',
         'ui.orSignIn': 'Or sign in with',
+        'ui.googleSignup': 'Start with Google',
         'ui.naverSignup': 'Start with Naver (Coming Soon)',
         'ui.kakaoSignup': 'Start with Kakao (Coming Soon)',
 
@@ -2772,6 +2774,27 @@ async function generateShareImage() {
         template.style.display = 'none';
         window.scrollTo(oldScrollX, oldScrollY);
     }
+}
+
+// Google OAuth Login Handler
+const googleLoginBtn = document.getElementById('auth-google');
+if (googleLoginBtn) {
+    googleLoginBtn.addEventListener('click', async () => {
+        try {
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin + '/map.html'
+                }
+            });
+
+            if (error) throw error;
+            // OAuth will redirect to Google, then back to our app
+        } catch (error) {
+            console.error('Google login error:', error);
+            showToast('Google login failed: ' + error.message, true);
+        }
+    });
 }
 
 // Start

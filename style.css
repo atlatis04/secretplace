@@ -1781,6 +1781,91 @@ textarea {
     transform: translateY(0);
 }
 
+/* Social Login Buttons */
+.social-divider {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+    color: var(--text-gray);
+    font-size: 13px;
+}
+
+.social-divider::before,
+.social-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: var(--glass-border);
+}
+
+.social-divider::before {
+    left: 0;
+}
+
+.social-divider::after {
+    right: 0;
+}
+
+.social-auth-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.social-btn {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s ease;
+}
+
+.social-btn:hover:not(.disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.social-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.social-btn .icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.social-btn.google .icon {
+    background: #fff;
+    color: #4285f4;
+}
+
+.social-btn.naver .icon {
+    background: #03c75a;
+    color: white;
+}
+
+.social-btn.kakao .icon {
+    background: #fee500;
+    color: #000;
+}
+
 .footer-text {
     text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
 }
