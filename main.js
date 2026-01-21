@@ -3426,6 +3426,21 @@ if (cancelImportBtn) {
 
 // ========== END IMPORT FUNCTIONALITY ==========
 
+// Load Shared Places - Router function
+async function loadSharedPlaces() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const legacyUserId = urlParams.get('shared');
+
+    if (token) {
+        // New token-based sharing
+        await loadSharedPlacesByToken(token);
+    } else if (legacyUserId) {
+        // Legacy user ID-based sharing
+        await loadSharedPlacesByUserId(legacyUserId);
+    }
+}
+
 // Start
 attachPinSettingsEvents();
 loadSharedPlaces().then(() => {
