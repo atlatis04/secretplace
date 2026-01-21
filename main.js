@@ -11,6 +11,9 @@ let currentPlace = null;
 let currentUser = null;
 let userPhotoCount = 0; // Total photos uploaded by user
 let isSharedMode = false; // Flag to prevent loadPlaces from overwriting shared content
+let sharedUserId = null; // ID of user whose places are being shared
+let sharedUserNickname = null; // Nickname of user sharing places
+let importedPlaceIds = new Set(); // Track which shared places have been imported
 
 // Initialize userSettings with default values (loaded from localStorage later)
 let userSettings = { handedness: 'right', language: 'ko', mapStyle: 'default', colorLabels: {} };
@@ -360,6 +363,22 @@ const translations = {
         'auth.provider.google': '구글 로그인',
         'auth.provider.kakao': '카카오 로그인',
         'auth.provider.naver': '네이버 로그인',
+
+        // Import Feature
+        'import.addToMyMap': '내 지도에 추가',
+        'import.alreadyAdded': '이미 추가됨',
+        'import.importing': '가져오는 중...',
+        'import.success': '장소가 내 지도에 추가되었습니다',
+        'import.error': '장소 추가에 실패했습니다',
+        'import.duplicate': '이미 비슷한 장소가 있습니다',
+        'import.viewingShared': (nickname) => `${nickname}님이 공유한 장소`,
+        'import.copyPhotos': '사진도 함께 복사',
+        'import.photosWillCopy': '사진도 함께 복사됩니다',
+        'import.photosWontCopy': '사진은 복사되지 않습니다',
+        'import.storageLimit': '사진 저장 용량이 부족합니다',
+        'import.confirmTitle': '장소 가져오기',
+        'import.confirmMessage': '이 장소를 내 지도에 추가하시겠습니까?',
+        'import.loginRequired': '장소를 추가하려면 로그인이 필요합니다',
     },
     en: {
         // Photo Upload Messages
@@ -532,6 +551,22 @@ const translations = {
         'auth.provider.google': 'Google Login',
         'auth.provider.kakao': 'Kakao Login',
         'auth.provider.naver': 'Naver Login',
+
+        // Import Feature
+        'import.addToMyMap': 'Add to My Map',
+        'import.alreadyAdded': 'Already Added',
+        'import.importing': 'Importing...',
+        'import.success': 'Place added to your map',
+        'import.error': 'Failed to add place',
+        'import.duplicate': 'Similar place already exists',
+        'import.viewingShared': (nickname) => `Shared by ${nickname}`,
+        'import.copyPhotos': 'Copy photos too',
+        'import.photosWillCopy': 'Photos will be copied',
+        'import.photosWontCopy': 'Photos will not be copied',
+        'import.storageLimit': 'Photo storage limit exceeded',
+        'import.confirmTitle': 'Import Place',
+        'import.confirmMessage': 'Add this place to your map?',
+        'import.loginRequired': 'Login required to add places',
     }
 };
 
@@ -795,6 +830,60 @@ async function loadPlaces() {
     updateAuthUI(); // Update UI with photo count
 }
 
+// Load Shared Places from URL parameter
+async function loadSharedPlaces() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedUserIdParam = urlParams.get('shared');
+
+    if (!sharedUserIdParam) {
+        return; // Not a shared link
+    }
+
+    isSharedMode = true;
+    sharedUserId = sharedUserIdParam;
+
+    try {
+        // Load shared user's profile to get nickname
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('nickname')
+            .eq('id', sharedUserId)
+            .single();
+
+        if (!profileError && profile) {
+            sharedUserNickname = profile.nickname || 'Anonymous';
+        }
+
+        // Load public places from shared user
+        const { data: places, error } = await supabase
+            .from('places')
+            .select('*')
+            .eq('user_id', sharedUserId)
+            .eq('is_public', true);
+
+        if (error) {
+            console.error('Error loading shared places:', error);
+            showToast('Failed to load shared places');
+            return;
+        }
+
+        allPlaces = places || [];
+
+        // Load imported place IDs from localStorage
+        const storedImports = localStorage.getItem(`imported_${sharedUserId}`);
+        if (storedImports) {
+            importedPlaceIds = new Set(JSON.parse(storedImports));
+        }
+
+        applyFilters();
+        updateSharedModeUI();
+    } catch (error) {
+        console.error('Error in loadSharedPlaces:', error);
+        showToast('Failed to load shared places');
+    }
+}
+
+
 // Render list with categories and filter
 function renderFilteredList(placesToRender) {
     placeList.innerHTML = '';
@@ -866,6 +955,18 @@ function addMarkerToMap(place) {
     // Show edit button only if: not in shared mode AND (no user logged in OR user owns this place)
     const canEdit = !isSharedMode && (!currentUser || place.user_id === currentUser.id);
 
+    // Show import button in shared mode
+    const isAlreadyImported = importedPlaceIds.has(place.id);
+    const importButtonHtml = isSharedMode
+        ? `<div class="popup-actions">
+            <button class="import-popup-btn ${isAlreadyImported ? 'disabled' : ''}" 
+                    onclick="window.showImportModal('${place.id}')" 
+                    ${isAlreadyImported ? 'disabled' : ''}>
+                ${isAlreadyImported ? escapeHtml(t('import.alreadyAdded')) : escapeHtml(t('import.addToMyMap'))}
+            </button>
+           </div>`
+        : '';
+
     const popupContent = `
         <div class="popup-content">
             <h3><span style="color: ${place.color}">●</span> ${escapeHtml(place.name)}</h3>
@@ -876,6 +977,7 @@ function addMarkerToMap(place) {
             ${canEdit ? `<div class="popup-actions">
                 <button class="edit-popup-btn" onclick="window.editPlace('${place.id}')">${escapeHtml(t('ui.editDetails'))}</button>
             </div>` : ''}
+            ${importButtonHtml}
         </div>
     `;
 
@@ -899,6 +1001,16 @@ function addToList(place) {
         starsHtml += `<span style="color: ${i <= place.rating ? '#f59e0b' : '#475569'}">★</span>`;
     }
 
+    const isAlreadyImported = importedPlaceIds.has(place.id);
+    const importButtonHtml = isSharedMode
+        ? `<button class="import-list-btn ${isAlreadyImported ? 'disabled' : ''}" 
+                   onclick="event.stopPropagation(); window.showImportModal('${place.id}')"
+                   ${isAlreadyImported ? 'disabled' : ''}
+                   style="margin-top: 8px; padding: 6px 12px; border-radius: 6px; border: none; background: ${isAlreadyImported ? '#475569' : 'var(--primary)'}; color: white; font-size: 12px; cursor: ${isAlreadyImported ? 'not-allowed' : 'pointer'}; width: 100%;">
+               ${isAlreadyImported ? escapeHtml(t('import.alreadyAdded')) : escapeHtml(t('import.addToMyMap'))}
+           </button>`
+        : '';
+
     item.innerHTML = `
         ${isSharedMode ? '' : `<button class="delete-item-btn" title="${t('ui.deleteTooltip')}" onclick="event.stopPropagation(); window.deletePlaceDirectly('${place.id}')">&times;</button>`}
         <h3>${escapeHtml(place.name)}</h3>
@@ -915,6 +1027,7 @@ function addToList(place) {
                 </div>
             </div>
         </div>
+        ${importButtonHtml}
     `;
     item.onclick = () => {
         map.flyTo([place.latitude, place.longitude], 16);
@@ -1774,6 +1887,10 @@ logoutBtn.onclick = async () => {
         await supabase.auth.signOut();
         showToast(t('auth.loggedOut'));
         userInfoPanel.classList.add('hidden');
+
+        // Redirect to clean URL without shared link parameters
+        const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+        window.location.href = cleanUrl;
     }
 };
 
@@ -3052,7 +3169,253 @@ quickDateBtns.forEach(btn => {
     });
 });
 
+// ========== IMPORT FUNCTIONALITY ==========
+
+// Update shared mode UI
+function updateSharedModeUI() {
+    const banner = document.getElementById('shared-mode-banner');
+    const bannerText = document.getElementById('shared-mode-text');
+
+    if (isSharedMode && banner && bannerText) {
+        banner.classList.remove('hidden');
+        bannerText.textContent = t('import.viewingShared', sharedUserNickname || 'Anonymous');
+    }
+}
+
+// Show import confirmation modal
+window.showImportModal = (placeId) => {
+    if (!currentUser) {
+        authOverlay.classList.remove('hidden');
+        showToast(t('import.loginRequired'));
+        return;
+    }
+
+    const place = allPlaces.find(p => p.id === placeId);
+    if (!place) return;
+
+    const modal = document.getElementById('import-modal');
+    const titleEl = document.getElementById('import-modal-title');
+    const messageEl = document.getElementById('import-modal-message');
+    const copyPhotosCheckbox = document.getElementById('import-copy-photos');
+    const photoNote = document.getElementById('import-photo-note');
+    const confirmBtn = document.getElementById('confirm-import-btn');
+
+    titleEl.textContent = t('import.confirmTitle');
+    messageEl.textContent = t('import.confirmMessage');
+    copyPhotosCheckbox.checked = false; // Default: don't copy photos
+    photoNote.textContent = t('import.photosWontCopy');
+
+    // Update note text when checkbox changes
+    copyPhotosCheckbox.onchange = () => {
+        photoNote.textContent = copyPhotosCheckbox.checked
+            ? t('import.photosWillCopy')
+            : t('import.photosWontCopy');
+    };
+
+    // Set up confirm button
+    confirmBtn.onclick = async () => {
+        const copyPhotos = copyPhotosCheckbox.checked;
+        modal.classList.add('hidden');
+        await importPlaceToMyMap(place, copyPhotos);
+    };
+
+    modal.classList.remove('hidden');
+};
+
+// Check if similar place already exists
+async function checkIfPlaceExists(place) {
+    if (!currentUser) return null;
+
+    try {
+        // Check by coordinates (within ~10 meters)
+        const latThreshold = 0.0001; // ~11 meters
+        const lngThreshold = 0.0001;
+
+        const { data, error } = await supabase
+            .from('places')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .gte('latitude', place.latitude - latThreshold)
+            .lte('latitude', place.latitude + latThreshold)
+            .gte('longitude', place.longitude - lngThreshold)
+            .lte('longitude', place.longitude + lngThreshold);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            return data[0]; // Return first matching place
+        }
+
+        return null;
+    } catch (error) {
+        console.error('Error checking for duplicate:', error);
+        return null;
+    }
+}
+
+// Import place to user's map
+async function importPlaceToMyMap(sharedPlace, copyPhotos = false) {
+    if (!currentUser) {
+        showToast(t('import.loginRequired'), true);
+        return;
+    }
+
+    showToast(t('import.importing'));
+
+    try {
+        // Check for duplicates
+        const existingPlace = await checkIfPlaceExists(sharedPlace);
+        if (existingPlace) {
+            showToast(t('import.duplicate'), true);
+            return;
+        }
+
+        // Prepare place data
+        const newPlace = {
+            user_id: currentUser.id,
+            name: sharedPlace.name,
+            address: sharedPlace.address,
+            latitude: sharedPlace.latitude,
+            longitude: sharedPlace.longitude,
+            comment: sharedPlace.comment,
+            rating: sharedPlace.rating,
+            visit_date: sharedPlace.visit_date,
+            color: sharedPlace.color,
+            is_public: false, // Default to private
+            photo_urls: []
+        };
+
+        // Handle photos
+        if (copyPhotos && sharedPlace.photo_urls && sharedPlace.photo_urls.length > 0) {
+            // Check storage limit
+            const photosToAdd = sharedPlace.photo_urls.length;
+            if (userPhotoCount + photosToAdd > 300) {
+                showToast(t('import.storageLimit'), true);
+                return;
+            }
+
+            // Copy photos
+            const copiedPhotoUrls = await copyPhotosToUserStorage(sharedPlace.photo_urls, sharedPlace.id);
+            newPlace.photo_urls = copiedPhotoUrls;
+        }
+
+        // Insert new place
+        const { data, error } = await supabase
+            .from('places')
+            .insert([newPlace])
+            .select();
+
+        if (error) throw error;
+
+        // Mark as imported
+        importedPlaceIds.add(sharedPlace.id);
+        localStorage.setItem(`imported_${sharedUserId}`, JSON.stringify([...importedPlaceIds]));
+
+        // Update UI
+        showToast(t('import.success'));
+
+        // Refresh the list to show "Already Added" state
+        applyFilters();
+
+    } catch (error) {
+        console.error('Error importing place:', error);
+        showToast(t('import.error'), true);
+    }
+}
+
+// Copy photos to user's storage
+async function copyPhotosToUserStorage(photoUrls, originalPlaceId) {
+    const copiedUrls = [];
+
+    for (const url of photoUrls) {
+        try {
+            // Download the image
+            const response = await fetch(url);
+            const blob = await response.blob();
+
+            // Resize and optimize
+            const optimizedBlob = await resizeImage(blob);
+
+            // Generate unique filename
+            const timestamp = Date.now();
+            const randomStr = Math.random().toString(36).substring(7);
+            const filename = `${currentUser.id}/${timestamp}_${randomStr}_imported.webp`;
+
+            // Upload to storage
+            const { data, error } = await supabase.storage
+                .from('place-photos')
+                .upload(filename, optimizedBlob, {
+                    contentType: 'image/webp',
+                    cacheControl: '3600'
+                });
+
+            if (error) throw error;
+
+            // Get public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('place-photos')
+                .getPublicUrl(filename);
+
+            copiedUrls.push(publicUrl);
+
+        } catch (error) {
+            console.error('Error copying photo:', error);
+            // Continue with other photos even if one fails
+        }
+    }
+
+    return copiedUrls;
+}
+
+// Set up import modal event listeners
+const importModal = document.getElementById('import-modal');
+const closeImportModal = document.getElementById('close-import-modal');
+const cancelImportBtn = document.getElementById('cancel-import-btn');
+
+if (closeImportModal) {
+    closeImportModal.addEventListener('click', () => {
+        importModal.classList.add('hidden');
+    });
+}
+
+if (cancelImportBtn) {
+    cancelImportBtn.addEventListener('click', () => {
+        importModal.classList.add('hidden');
+    });
+}
+
+// ========== END IMPORT FUNCTIONALITY ==========
+
 // Start
 attachPinSettingsEvents();
-initMap();
+loadSharedPlaces().then(() => {
+    // Only load user's places if not in shared mode
+    if (!isSharedMode) {
+        initMap();
+    } else {
+        initMap();
+    }
+});
 updateUILanguage();
+
+// Share Link Functionality
+const shareLinkBtn = document.getElementById('share-link-btn');
+if (shareLinkBtn) {
+    shareLinkBtn.addEventListener('click', () => {
+        if (!currentUser) {
+            showToast(t('ui.loginRequired'), true);
+            return;
+        }
+
+        // Generate share link with user ID
+        const shareUrl = `${window.location.origin}${window.location.pathname}?shared=${currentUser.id}`;
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            showToast(t('ui.linkCopied'));
+        }).catch(err => {
+            console.error('Failed to copy link:', err);
+            showToast('Failed to copy link', true);
+        });
+    });
+}

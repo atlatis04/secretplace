@@ -44,6 +44,12 @@
       </div>
     </div>
 
+    <!-- Shared Mode Banner -->
+    <div id="shared-mode-banner" class="shared-mode-banner hidden">
+      <span class="icon">🔗</span>
+      <span id="shared-mode-text">Viewing shared places</span>
+    </div>
+
     <div class="map-controls-repositioned">
       <button id="auth-toggle-btn" class="glass-button square" title="Login/Logout">
         <span class="icon">👤</span>
@@ -417,6 +423,40 @@
               style="background: #475569; color: white; flex: 1; margin: 0; padding: 12px; border-radius: 8px; font-weight: 600; border: none; height: 45px; display: flex; align-items: center; justify-content: center;">Cancel</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Import Confirmation Modal -->
+    <div id="import-modal" class="modal-overlay hidden" style="z-index: 4000;">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="import-modal-title">Import Place</h2>
+          <button id="close-import-modal" class="close-btn">&times;</button>
+        </div>
+        <div id="import-modal-content">
+          <p id="import-modal-message" style="color: var(--text-gray); margin-bottom: 20px;">
+            Add this place to your map?
+          </p>
+          <div class="form-group">
+            <label class="visibility-toggle" style="cursor: pointer;">
+              <input type="checkbox" id="import-copy-photos">
+              <span class="visibility-label" id="import-copy-photos-label">Copy photos too</span>
+            </label>
+            <p id="import-photo-note" style="font-size: 12px; color: var(--text-gray); margin-top: 8px;">
+              Photos will not be copied (saves storage)
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 12px; margin-top: 24px;">
+          <button type="button" id="confirm-import-btn" class="primary-btn"
+            style="flex: 1; margin: 0; padding: 12px; border-radius: 8px; font-weight: 600; border: none; height: 45px;">
+            Import
+          </button>
+          <button type="button" id="cancel-import-btn" class="secondary-btn"
+            style="background: #475569; color: white; flex: 1; margin: 0; padding: 12px; border-radius: 8px; font-weight: 600; border: none; height: 45px;">
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
 

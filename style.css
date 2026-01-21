@@ -94,6 +94,57 @@ body {
     display: none;
 }
 
+/* Shared Mode Banner */
+.shared-mode-banner {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1001;
+    background: rgba(59, 130, 246, 0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.shared-mode-banner .icon {
+    font-size: 16px;
+}
+
+/* Import Buttons */
+.import-popup-btn {
+    background: var(--primary);
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    width: 100%;
+    display: block;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.import-popup-btn:hover:not(.disabled) {
+    background: var(--primary-hover);
+}
+
+.import-popup-btn.disabled {
+    background: #475569;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
 /* Search Container */
 .search-container {
     position: absolute;
