@@ -13,10 +13,173 @@ let userPhotoCount = 0; // Total photos uploaded by user
 let isSharedMode = false; // Flag to prevent loadPlaces from overwriting shared content
 
 // Initialize userSettings with default values (loaded from localStorage later)
-let userSettings = { handedness: 'right', language: 'ko', mapStyle: 'default' };
+let userSettings = { handedness: 'right', language: 'ko', mapStyle: 'default', colorLabels: {} };
+
+// Default color labels
+const DEFAULT_COLOR_LABELS = {
+    ko: {
+        '#ef4444': '빨강',
+        '#3b82f6': '파랑',
+        '#10b981': '초록',
+        '#f59e0b': '주황',
+        '#8b5cf6': '보라'
+    },
+    en: {
+        '#ef4444': 'Red',
+        '#3b82f6': 'Blue',
+        '#10b981': 'Green',
+        '#f59e0b': 'Orange',
+        '#8b5cf6': 'Purple'
+    }
+};
 
 // Date filter range
 let currentFilterDateRange = { from: null, to: null };
+
+// Pin Settings Management
+let pinSettings = {};
+
+function getColorLabel(color) {
+    const lang = userSettings.language || 'ko';
+    return pinSettings[color] || DEFAULT_COLOR_LABELS[lang][color] || color;
+}
+window.getColorLabel = getColorLabel;
+
+async function loadPinSettings() {
+    if (!currentUser) {
+        updateColorPickerLabels();
+        return;
+    }
+    try {
+        const { data, error } = await supabase
+            .from('user_pin_settings')
+            .select('*')
+            .eq('user_id', currentUser.id);
+
+        if (error) throw error;
+
+        pinSettings = {};
+        data.forEach(item => {
+            pinSettings[item.color] = item.label;
+        });
+
+        updateColorPickerLabels();
+        applyFilters();
+    } catch (error) {
+        console.error('Error loading pin settings:', error);
+    }
+}
+
+async function savePinSettings() {
+    if (!currentUser) {
+        showToast('Please login to save settings', true);
+        return;
+    }
+
+    const inputs = document.querySelectorAll('.pin-label-input');
+    const updates = [];
+
+    inputs.forEach(input => {
+        const color = input.getAttribute('data-color');
+        const label = input.value.trim();
+        if (label) {
+            updates.push({
+                user_id: currentUser.id,
+                color: color,
+                label: label,
+                updated_at: new Date().toISOString()
+            });
+        }
+    });
+
+    try {
+        const { error } = await supabase
+            .from('user_pin_settings')
+            .upsert(updates, { onConflict: 'user_id,color' });
+
+        if (error) throw error;
+
+        updates.forEach(u => pinSettings[u.color] = u.label);
+
+        showToast(t('save.success'));
+        document.getElementById('pin-settings-modal').classList.add('hidden');
+
+        updateColorPickerLabels();
+        applyFilters();
+    } catch (error) {
+        console.error('Error saving pin settings:', error);
+        showToast(t('save.error'), true);
+    }
+}
+
+function updatePinSettingsUI() {
+    const list = document.getElementById('pin-labels-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+    const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+
+    // Always use English defaults for pin settings
+    const defaultLang = 'en';
+
+    colors.forEach(color => {
+        const item = document.createElement('div');
+        item.className = 'pin-label-item';
+
+        const defaultLabel = DEFAULT_COLOR_LABELS[defaultLang][color] || '';
+        const currentLabel = pinSettings[color] || defaultLabel;
+
+        item.innerHTML = `
+            <div class="pin-label-color" style="background: ${color}"></div>
+            <div class="pin-label-input-wrapper">
+                <input type="text" class="pin-label-input" data-color="${color}" value="${currentLabel}" maxlength="20" placeholder="${defaultLabel}">
+            </div>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function attachPinSettingsEvents() {
+    const pinSettingsBtn = document.getElementById('pin-settings-btn');
+    const pinSettingsModal = document.getElementById('pin-settings-modal');
+    const savePinSettingsBtn = document.getElementById('save-pin-settings');
+
+    if (pinSettingsBtn) {
+        pinSettingsBtn.addEventListener('click', () => {
+            if (!currentUser) {
+                showToast('Please login to use pin settings', true);
+                return;
+            }
+            updatePinSettingsUI();
+            pinSettingsModal.classList.remove('hidden');
+        });
+    }
+
+    if (savePinSettingsBtn) {
+        savePinSettingsBtn.addEventListener('click', savePinSettings);
+    }
+
+    document.querySelectorAll('#pin-settings-modal .close-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            pinSettingsModal.classList.add('hidden');
+        });
+    });
+}
+
+function updateColorPickerLabels() {
+    const labels = document.querySelectorAll('#color-picker label');
+    labels.forEach(label => {
+        const input = document.getElementById(label.getAttribute('for'));
+        if (input) {
+            const color = input.value;
+            const labelText = getColorLabel(color);
+            // label.className = 'color-btn';
+            // label.innerHTML = `<span class="color-label-in-btn">${labelText}</span>`;
+        }
+    });
+}
+
+
 
 // 초기 위치 (서울)
 const DEFAULT_COORD = [37.5665, 126.9780];
@@ -135,6 +298,12 @@ const translations = {
         'ui.endDate': '종료일',
         'ui.apply': '적용',
         'ui.clear': '초기화',
+        'ui.lastMonth': '저번달',
+        'ui.thisMonth': '이번달',
+        'ui.lastWeek': '최근 1주',
+        'ui.pinSettings': '핀 설정',
+        'ui.pinLabel': '핀 라벨',
+        'ui.save': '저장',
 
         // UI Text - Settings Modal
         'ui.handedness': '손잡이',
@@ -304,6 +473,9 @@ const translations = {
         'ui.endDate': 'End Date',
         'ui.apply': 'Apply',
         'ui.clear': 'Clear',
+        'ui.lastMonth': 'Last Month',
+        'ui.thisMonth': 'This Month',
+        'ui.lastWeek': 'Last Week',
 
         // UI Text - Settings Modal
         'ui.handedness': 'Handedness',
@@ -558,6 +730,7 @@ function initMap() {
         updateAuthUI();
 
         loadPlaces();
+        loadPinSettings();
     });
 
     // UI 요소 클릭 시 지도 클릭 이벤트 전파 방지 (장소 등록 중복 방지)
@@ -737,8 +910,8 @@ function addToList(place) {
                     <span class="visibility-label">${t('ui.public')}</span>
                 </label>
                 <div style="display: flex; align-items: center;">
-                    <span class="color-bullet" style="background-color: ${place.color}"></span>
-                    <span style="font-size: 12px; color: #94a3b8;">${place.visit_date || ''}</span>
+                    <span class="color-bullet" style="background-color: ${place.color}; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%;"></span>
+                    <span style="font-size: 12px; color: #94a3b8; margin-left: 4px;">${place.visit_date || ''}</span>
                 </div>
             </div>
         </div>
@@ -1999,11 +2172,11 @@ function showToast(msg, isError = false) {
 function updateUILanguage() {
     const lang = userSettings.language || 'ko';
 
-    // Sidebar
+
     const sidebarHeader = document.querySelector('#sidebar h2');
     if (sidebarHeader) sidebarHeader.innerText = t('ui.placeList');
 
-    // Place Modal
+    updateColorPickerLabels();    // Place Modal
     const modalTitle = document.getElementById('modal-title');
     // Modal title is set dynamically in openModal function
 
@@ -2134,6 +2307,19 @@ function updateUILanguage() {
     const dateFilterHeader = document.querySelector('#date-filter-panel h3');
     if (dateFilterHeader) dateFilterHeader.innerText = t('ui.dateFilter');
 
+    // Pin Settings Modal
+    const pinSettingsTitle = document.getElementById('pin-settings-title');
+    if (pinSettingsTitle) pinSettingsTitle.innerText = t('ui.pinSettings');
+    const pinSettingsSaveBtn = document.getElementById('save-pin-settings');
+    if (pinSettingsSaveBtn) pinSettingsSaveBtn.innerText = t('ui.save');
+
+    // Update map control titles
+    const pinSettingsControl = document.getElementById('pin-settings-btn');
+    if (pinSettingsControl) pinSettingsControl.title = t('ui.pinSettings');
+
+    updateColorPickerLabels();
+    updateColorPickerLabels();
+
     const dateFromLabel = document.querySelector('label[for="date-from"]');
     if (dateFromLabel) dateFromLabel.innerText = t('ui.startDate');
 
@@ -2145,6 +2331,15 @@ function updateUILanguage() {
 
     const clearDateFilterBtn = document.getElementById('clear-date-filter');
     if (clearDateFilterBtn) clearDateFilterBtn.innerText = t('ui.clear');
+
+    // Quick Date Filter Buttons
+    const quickDateBtns = document.querySelectorAll('.quick-date-btn');
+    quickDateBtns.forEach(btn => {
+        const range = btn.getAttribute('data-range');
+        if (range === 'last-month') btn.innerText = t('ui.lastMonth');
+        else if (range === 'this-month') btn.innerText = t('ui.thisMonth');
+        else if (range === 'last-week') btn.innerText = t('ui.lastWeek');
+    });
 
     // Settings Modal
     const settingsHeader = document.querySelector('#settings-modal h2');
@@ -2800,6 +2995,64 @@ if (googleLoginBtn) {
     });
 }
 
+// Quick Date Filter Event Handlers
+const quickDateBtns = document.querySelectorAll('.quick-date-btn');
+quickDateBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const range = btn.getAttribute('data-range');
+        const year = btn.getAttribute('data-year');
+        let startDate, endDate;
+        const today = new Date();
+
+        if (year) {
+            // Year filter: January 1st to December 31st of the selected year
+            startDate = new Date(parseInt(year), 0, 1);
+            endDate = new Date(parseInt(year), 11, 31);
+        } else if (range) {
+            // Quick date range filters
+            switch (range) {
+                case 'last-month':
+                    // Get first and last day of previous month
+                    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    startDate = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+                    endDate = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+                    break;
+
+                case 'this-month':
+                    // Get first day of current month to today
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = new Date(today);
+                    break;
+
+                case 'last-week':
+                    // Get date 7 days ago to today
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 7);
+                    endDate = new Date(today);
+                    break;
+            }
+        }
+
+        // Format dates as YYYY-MM-DD for input fields
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        // Set the date input fields
+        if (startDate && endDate) {
+            dateFromInput.value = formatDate(startDate);
+            dateToInput.value = formatDate(endDate);
+
+            // Apply the filter automatically
+            applyDateFilter();
+        }
+    });
+});
+
 // Start
+attachPinSettingsEvents();
 initMap();
-updateUILanguage(); // Initialize UI with current language
+updateUILanguage();

@@ -48,6 +48,9 @@
       <button id="auth-toggle-btn" class="glass-button square" title="Login/Logout">
         <span class="icon">👤</span>
       </button>
+      <button id="pin-settings-btn" class="glass-button square" title="Pin Settings">
+        <span class="icon">📍</span>
+      </button>
       <button id="date-filter-btn" class="glass-button square" title="Date Filter">
         <span class="icon">📅</span>
       </button>
@@ -132,7 +135,6 @@
           </div>
 
           <div class="form-group">
-            <label for="pin-color">Pin Color</label>
             <div class="color-picker" id="color-picker">
               <input type="radio" name="color" value="#ef4444" id="c1" checked><label for="c1"
                 style="background:#ef4444"></label>
@@ -279,6 +281,12 @@
         <input type="date" id="date-to">
 
         <div class="quick-date-filters">
+          <button type="button" class="quick-date-btn" data-range="last-month">저번달</button>
+          <button type="button" class="quick-date-btn" data-range="this-month">이번달</button>
+          <button type="button" class="quick-date-btn" data-range="last-week">최근 1주</button>
+        </div>
+
+        <div class="quick-date-filters" style="margin-top: 8px;">
           <button type="button" class="quick-date-btn" data-year="2024">2024</button>
           <button type="button" class="quick-date-btn" data-year="2025">2025</button>
           <button type="button" class="quick-date-btn" data-year="2026">2026</button>
@@ -480,6 +488,25 @@
           <span class="footer-icon">📍</span>
           <span class="footer-text">MAPNOTE ANALYTICS | YEAR IN REVIEW</span>
         </footer>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pin Settings Modal -->
+  <div id="pin-settings-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="pin-settings-title">Pin Settings</h2>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="pin-settings-container">
+        <p style="font-size: 14px; color: var(--text-gray); margin-bottom: 20px;">각 색상 핀에 어울리는 이름을 설정해보세요!</p>
+        <div id="pin-labels-list">
+          <!-- Labels will be injected here by JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="save-pin-settings" class="primary-btn">Save</button>
       </div>
     </div>
   </div>
