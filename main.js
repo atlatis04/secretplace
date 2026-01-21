@@ -379,6 +379,26 @@ const translations = {
         'import.confirmTitle': '장소 가져오기',
         'import.confirmMessage': '이 장소를 내 지도에 추가하시겠습니까?',
         'import.loginRequired': '장소를 추가하려면 로그인이 필요합니다',
+
+        // Share Link Feature
+        'share.title': '장소 공유',
+        'share.expiration': '링크 만료 시간',
+        'share.24hours': '24시간',
+        'share.7days': '7일',
+        'share.30days': '30일',
+        'share.never': '영구',
+        'share.generateLink': '링크 생성',
+        'share.activeLinks': '활성 공유 링크',
+        'share.noLinks': '활성 링크가 없습니다',
+        'share.expires': '만료',
+        'share.accessed': '접속',
+        'share.times': '회',
+        'share.deleteLink': '삭제',
+        'share.linkExpired': '공유 링크가 만료되었습니다',
+        'share.linkInvalid': '유효하지 않은 공유 링크입니다',
+        'share.linkDeleted': '공유 링크가 삭제되었습니다',
+        'share.linkGenerated': '공유 링크가 생성되었습니다',
+        'share.deleteConfirm': '이 공유 링크를 삭제하시겠습니까?',
     },
     en: {
         // Photo Upload Messages
@@ -567,6 +587,26 @@ const translations = {
         'import.confirmTitle': 'Import Place',
         'import.confirmMessage': 'Add this place to your map?',
         'import.loginRequired': 'Login required to add places',
+
+        // Share Link Feature
+        'share.title': 'Share Places',
+        'share.expiration': 'Link Expiration',
+        'share.24hours': '24 Hours',
+        'share.7days': '7 Days',
+        'share.30days': '30 Days',
+        'share.never': 'Never',
+        'share.generateLink': 'Generate Link',
+        'share.activeLinks': 'Active Share Links',
+        'share.noLinks': 'No active links',
+        'share.expires': 'Expires',
+        'share.accessed': 'Accessed',
+        'share.times': 'times',
+        'share.deleteLink': 'Delete',
+        'share.linkExpired': 'Share link has expired',
+        'share.linkInvalid': 'Invalid share link',
+        'share.linkDeleted': 'Share link deleted',
+        'share.linkGenerated': 'Share link generated',
+        'share.deleteConfirm': 'Delete this share link?',
     }
 };
 
@@ -3398,24 +3438,302 @@ loadSharedPlaces().then(() => {
 });
 updateUILanguage();
 
-// Share Link Functionality
+// ========== SHARE LINK TOKEN SYSTEM ==========
+
+// Generate random token
+function generateRandomToken(length = 32) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let token = '';
+    for (let i = 0; i < length; i++) {
+        token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return token;
+}
+
+// Generate share token
+async function generateShareToken(expirationHours) {
+    if (!currentUser) return null;
+
+    try {
+        const token = generateRandomToken(32);
+
+        // Calculate expiration
+        const expiresAt = expirationHours === 'never'
+            ? new Date('2099-12-31').toISOString()
+            : new Date(Date.now() + expirationHours * 60 * 60 * 1000).toISOString();
+
+        // Insert into database
+        const { data, error } = await supabase
+            .from('share_tokens')
+            .insert({
+                token,
+                user_id: currentUser.id,
+                expires_at: expiresAt
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    } catch (error) {
+        console.error('Error generating share token:', error);
+        return null;
+    }
+}
+
+// Load active share tokens
+async function loadActiveShareTokens() {
+    if (!currentUser) return [];
+
+    try {
+        const { data, error } = await supabase
+            .from('share_tokens')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .eq('is_active', true)
+            .gte('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Error loading share tokens:', error);
+        return [];
+    }
+}
+
+// Deactivate share token
+async function deactivateShareToken(tokenId) {
+    try {
+        const { error } = await supabase
+            .from('share_tokens')
+            .update({ is_active: false })
+            .eq('id', tokenId);
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('Error deactivating token:', error);
+        return false;
+    }
+}
+
+// Load shared places by token
+async function loadSharedPlacesByToken(token) {
+    try {
+        // Validate token
+        const { data: tokenData, error: tokenError } = await supabase
+            .from('share_tokens')
+            .select('*')
+            .eq('token', token)
+            .eq('is_active', true)
+            .gte('expires_at', new Date().toISOString())
+            .single();
+
+        if (tokenError || !tokenData) {
+            showToast(t('share.linkInvalid'), true);
+            return;
+        }
+
+        // Update access count
+        await supabase
+            .from('share_tokens')
+            .update({
+                access_count: tokenData.access_count + 1,
+                last_accessed_at: new Date().toISOString()
+            })
+            .eq('id', tokenData.id);
+
+        // Load shared user's data
+        isSharedMode = true;
+        sharedUserId = tokenData.user_id;
+
+        // Get user profile
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('nickname')
+            .eq('id', sharedUserId)
+            .single();
+
+        sharedUserNickname = profile?.nickname || 'Anonymous';
+
+        // Load public places
+        const { data: places, error: placesError } = await supabase
+            .from('places')
+            .select('*')
+            .eq('user_id', sharedUserId)
+            .eq('is_public', true);
+
+        if (placesError) throw placesError;
+
+        allPlaces = places || [];
+
+        // Load imported place IDs
+        const storedImports = localStorage.getItem(`imported_${sharedUserId}`);
+        if (storedImports) {
+            importedPlaceIds = new Set(JSON.parse(storedImports));
+        }
+
+        applyFilters();
+        updateSharedModeUI();
+
+    } catch (error) {
+        console.error('Error loading shared places by token:', error);
+        showToast(t('share.linkInvalid'), true);
+    }
+}
+
+// Load shared places by user ID (legacy support)
+async function loadSharedPlacesByUserId(userId) {
+    try {
+        isSharedMode = true;
+        sharedUserId = userId;
+
+        // Get user profile
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('nickname')
+            .eq('id', sharedUserId)
+            .single();
+
+        sharedUserNickname = profile?.nickname || 'Anonymous';
+
+        // Load public places
+        const { data: places, error } = await supabase
+            .from('places')
+            .select('*')
+            .eq('user_id', sharedUserId)
+            .eq('is_public', true);
+
+        if (error) throw error;
+
+        allPlaces = places || [];
+
+        // Load imported place IDs
+        const storedImports = localStorage.getItem(`imported_${sharedUserId}`);
+        if (storedImports) {
+            importedPlaceIds = new Set(JSON.parse(storedImports));
+        }
+
+        applyFilters();
+        updateSharedModeUI();
+
+    } catch (error) {
+        console.error('Error loading shared places:', error);
+        showToast('Failed to load shared places', true);
+    }
+}
+
+// Display active share links
+async function loadAndDisplayActiveTokens() {
+    const tokens = await loadActiveShareTokens();
+    const listEl = document.getElementById('active-links-list');
+
+    if (!listEl) return;
+
+    if (tokens.length === 0) {
+        listEl.innerHTML = '';
+        return;
+    }
+
+    listEl.innerHTML = tokens.map(token => {
+        const expiresDate = new Date(token.expires_at);
+        const isNeverExpires = expiresDate.getFullYear() >= 2099;
+        const expiresText = isNeverExpires
+            ? t('share.never')
+            : `${t('share.expires')}: ${expiresDate.toLocaleString()}`;
+
+        return `
+            <div class="active-link-item">
+                <div class="link-info">
+                    <span class="link-url">${window.location.origin}${window.location.pathname}?token=${token.token}</span>
+                    <span class="link-expires">${expiresText}</span>
+                    <span class="link-stats">${t('share.accessed')} ${token.access_count} ${t('share.times')}</span>
+                </div>
+                <button class="delete-link-btn" onclick="deleteShareLink('${token.id}')">
+                    ${t('share.deleteLink')}
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+// Delete share link
+window.deleteShareLink = async (tokenId) => {
+    if (confirm(t('share.deleteConfirm'))) {
+        const success = await deactivateShareToken(tokenId);
+        if (success) {
+            showToast(t('share.linkDeleted'));
+            await loadAndDisplayActiveTokens();
+        } else {
+            showToast('Failed to delete link', true);
+        }
+    }
+};
+
+// Share Link Modal Setup
 const shareLinkBtn = document.getElementById('share-link-btn');
+const shareLinkModal = document.getElementById('share-link-modal');
+const closeShareLinkModal = document.getElementById('close-share-link-modal');
+const generateShareLinkBtn = document.getElementById('generate-share-link-btn');
+const shareExpirationSelect = document.getElementById('share-expiration');
+const shareLinkUrlInput = document.getElementById('share-link-url');
+const copyShareLinkBtn = document.getElementById('copy-share-link-btn');
+const generatedLinkSection = document.getElementById('generated-link-section');
+
 if (shareLinkBtn) {
-    shareLinkBtn.addEventListener('click', () => {
+    shareLinkBtn.addEventListener('click', async () => {
         if (!currentUser) {
             showToast(t('ui.loginRequired'), true);
             return;
         }
 
-        // Generate share link with user ID
-        const shareUrl = `${window.location.origin}${window.location.pathname}?shared=${currentUser.id}`;
+        shareLinkModal.classList.remove('hidden');
+        generatedLinkSection.classList.add('hidden');
+        await loadAndDisplayActiveTokens();
+    });
+}
 
-        // Copy to clipboard
-        navigator.clipboard.writeText(shareUrl).then(() => {
+if (closeShareLinkModal) {
+    closeShareLinkModal.addEventListener('click', () => {
+        shareLinkModal.classList.add('hidden');
+    });
+}
+
+if (generateShareLinkBtn) {
+    generateShareLinkBtn.addEventListener('click', async () => {
+        const expiration = shareExpirationSelect.value;
+        const expirationHours = expiration === 'never' ? 'never' : parseInt(expiration);
+
+        showToast(t('share.generateLink') + '...');
+
+        const tokenData = await generateShareToken(expirationHours);
+
+        if (tokenData) {
+            const shareUrl = `${window.location.origin}${window.location.pathname}?token=${tokenData.token}`;
+            shareLinkUrlInput.value = shareUrl;
+            generatedLinkSection.classList.remove('hidden');
+            showToast(t('share.linkGenerated'));
+
+            // Refresh active links list
+            await loadAndDisplayActiveTokens();
+        } else {
+            showToast('Failed to generate link', true);
+        }
+    });
+}
+
+if (copyShareLinkBtn) {
+    copyShareLinkBtn.addEventListener('click', () => {
+        const url = shareLinkUrlInput.value;
+        navigator.clipboard.writeText(url).then(() => {
             showToast(t('ui.linkCopied'));
         }).catch(err => {
-            console.error('Failed to copy link:', err);
+            console.error('Failed to copy:', err);
             showToast('Failed to copy link', true);
         });
     });
 }
+
+// ========== END SHARE LINK TOKEN SYSTEM ==========

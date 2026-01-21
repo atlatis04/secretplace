@@ -460,6 +460,49 @@
       </div>
     </div>
 
+    <!-- Share Link Modal -->
+    <div id="share-link-modal" class="modal-overlay hidden" style="z-index: 4000;">
+      <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+          <h2 id="share-link-title">Share Your Places</h2>
+          <button id="close-share-link-modal" class="close-btn">&times;</button>
+        </div>
+        <div id="share-link-content">
+          <div class="form-group">
+            <label for="share-expiration">Link Expiration</label>
+            <select id="share-expiration"
+              style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--glass-border); color: white; font-size: 14px;">
+              <option value="24" style="background: #1a1a2e; color: white;">24 Hours</option>
+              <option value="168" style="background: #1a1a2e; color: white;">7 Days</option>
+              <option value="720" style="background: #1a1a2e; color: white;">30 Days</option>
+              <option value="never" style="background: #1a1a2e; color: white;">Never (Permanent)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <button id="generate-share-link-btn" class="primary-btn"
+              style="width: 100%; padding: 12px; border-radius: 8px;">
+              Generate Share Link
+            </button>
+          </div>
+          <div id="generated-link-section" class="hidden" style="margin-top: 20px;">
+            <label>Share Link</label>
+            <div class="share-link-display" style="display: flex; gap: 8px; margin-top: 8px;">
+              <input type="text" id="share-link-url" readonly
+                style="flex: 1; padding: 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--glass-border); color: white; font-size: 13px;">
+              <button id="copy-share-link-btn" class="primary-btn"
+                style="padding: 12px 20px; border-radius: 8px; white-space: nowrap;">
+                Copy
+              </button>
+            </div>
+          </div>
+          <div id="active-links-section" style="margin-top: 30px;">
+            <h3 style="font-size: 16px; margin-bottom: 16px; color: white;">Active Share Links</h3>
+            <div id="active-links-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Cyberpunk Share Card Template (for image generation) -->
     <div id="share-card-template">
       <div class="share-card-content cyberpunk-style">

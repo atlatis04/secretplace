@@ -145,6 +145,66 @@ body {
     opacity: 0.7;
 }
 
+/* Share Link Modal */
+.active-link-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.link-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.link-url {
+    font-size: 12px;
+    color: var(--primary);
+    word-break: break-all;
+    font-family: monospace;
+}
+
+.link-expires,
+.link-stats {
+    font-size: 11px;
+    color: var(--text-gray);
+}
+
+.delete-link-btn {
+    background: var(--danger);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.delete-link-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+#active-links-list:empty::after {
+    content: 'No active share links';
+    display: block;
+    text-align: center;
+    color: var(--text-gray);
+    padding: 20px;
+    font-size: 14px;
+}
+
 /* Search Container */
 .search-container {
     position: absolute;
