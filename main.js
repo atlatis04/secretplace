@@ -346,6 +346,7 @@ const translations = {
         'ui.linkCopied': '공유 링크가 클립보드에 복사되었습니다.',
         'ui.myPlaceList': '나의 장소 목록',
         'ui.viewingSharedList': '공개된 공유 리스트를 보고 있습니다.',
+        'ui.goToMyMap': '내 지도로 돌아가기',
         'ui.public': '공개',
         'auth.nicknameUpdated': '닉네임이 성공적으로 변경되었습니다.',
         'auth.nicknameUpdateFailed': '닉네임 변경 실패',
@@ -398,6 +399,9 @@ const translations = {
         'share.linkInvalid': '유효하지 않은 공유 링크입니다',
         'share.linkDeleted': '공유 링크가 삭제되었습니다',
         'share.linkGenerated': '공유 링크가 생성되었습니다',
+        'share.deleteConfirm': '이 공유 링크를 삭제하시겠습니까?',
+        'share.placesCount': '공유 장소',
+        'share.allPlaces': '전체 장소',
         'share.deleteConfirm': '이 공유 링크를 삭제하시겠습니까?',
     },
     en: {
@@ -554,6 +558,7 @@ const translations = {
         'ui.linkCopied': 'Share link copied to clipboard.',
         'ui.myPlaceList': 'My Place List',
         'ui.viewingSharedList': 'Viewing shared public list.',
+        'ui.goToMyMap': 'Go to My Map',
         'ui.public': 'Public',
         'auth.nicknameUpdated': 'Nickname updated successfully.',
         'auth.nicknameUpdateFailed': 'Failed to update nickname',
@@ -606,6 +611,9 @@ const translations = {
         'share.linkInvalid': 'Invalid share link',
         'share.linkDeleted': 'Share link deleted',
         'share.linkGenerated': 'Share link generated',
+        'share.deleteConfirm': 'Are you sure you want to delete this share link?',
+        'share.placesCount': 'Shared places',
+        'share.allPlaces': 'All places',
         'share.deleteConfirm': 'Delete this share link?',
     }
 };
@@ -801,8 +809,16 @@ function initMap() {
 
     // Auth State Check
     supabase.auth.onAuthStateChange((event, session) => {
+        const wasGuest = !currentUser;
         currentUser = session?.user || null;
         updateAuthUI();
+
+        // Handle redirection if flag is set (e.g., from 'Go to My Map' banner)
+        if (event === 'SIGNED_IN' && wasGuest && sessionStorage.getItem('redirect_to_my_map') === 'true') {
+            sessionStorage.removeItem('redirect_to_my_map');
+            window.location.href = window.location.pathname;
+            return;
+        }
 
         loadPlaces();
         loadPinSettings();
@@ -870,59 +886,6 @@ async function loadPlaces() {
     updateAuthUI(); // Update UI with photo count
 }
 
-// Load Shared Places from URL parameter
-async function loadSharedPlaces() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sharedUserIdParam = urlParams.get('shared');
-
-    if (!sharedUserIdParam) {
-        return; // Not a shared link
-    }
-
-    isSharedMode = true;
-    sharedUserId = sharedUserIdParam;
-
-    try {
-        // Load shared user's profile to get nickname
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('nickname')
-            .eq('id', sharedUserId)
-            .single();
-
-        if (!profileError && profile) {
-            sharedUserNickname = profile.nickname || 'Anonymous';
-        }
-
-        // Load public places from shared user
-        const { data: places, error } = await supabase
-            .from('places')
-            .select('*')
-            .eq('user_id', sharedUserId)
-            .eq('is_public', true);
-
-        if (error) {
-            console.error('Error loading shared places:', error);
-            showToast('Failed to load shared places');
-            return;
-        }
-
-        allPlaces = places || [];
-
-        // Load imported place IDs from localStorage
-        const storedImports = localStorage.getItem(`imported_${sharedUserId}`);
-        if (storedImports) {
-            importedPlaceIds = new Set(JSON.parse(storedImports));
-        }
-
-        applyFilters();
-        updateSharedModeUI();
-    } catch (error) {
-        console.error('Error in loadSharedPlaces:', error);
-        showToast('Failed to load shared places');
-    }
-}
-
 
 // Render list with categories and filter
 function renderFilteredList(placesToRender) {
@@ -980,7 +943,12 @@ function addMarkerToMap(place) {
         iconAnchor: [20, 20]
     });
 
-    const marker = L.marker([place.latitude, place.longitude], { icon }).addTo(map);
+    const marker = L.marker([place.latitude, place.longitude], { icon });
+    if (map) {
+        marker.addTo(map);
+    } else {
+        console.warn('Map not ready for marker:', place.name);
+    }
 
     const photosHtml = (place.photo_urls && place.photo_urls.length > 0)
         ? `<div class="popup-gallery">
@@ -2618,6 +2586,9 @@ function updateUILanguage() {
     const uploadedImagesLabel = document.getElementById('uploaded-images-label');
     if (uploadedImagesLabel) uploadedImagesLabel.innerText = t('ui.uploadedImages');
 
+    const goToMyMapBtn = document.getElementById('go-to-my-map-btn');
+    if (goToMyMapBtn) goToMyMapBtn.innerText = t('ui.goToMyMap');
+
     // Update login provider info
     if (currentUser) {
         const provider = currentUser.app_metadata.provider || 'email';
@@ -3215,10 +3186,28 @@ quickDateBtns.forEach(btn => {
 function updateSharedModeUI() {
     const banner = document.getElementById('shared-mode-banner');
     const bannerText = document.getElementById('shared-mode-text');
+    const goToMyMapBtn = document.getElementById('go-to-my-map-btn');
 
     if (isSharedMode && banner && bannerText) {
         banner.classList.remove('hidden');
         bannerText.textContent = t('import.viewingShared', sharedUserNickname || 'Anonymous');
+
+        if (goToMyMapBtn) {
+            goToMyMapBtn.classList.remove('hidden');
+            goToMyMapBtn.onclick = () => {
+                if (!currentUser) {
+                    // Set flag to redirect after login
+                    sessionStorage.setItem('redirect_to_my_map', 'true');
+                    authOverlay.classList.remove('hidden');
+                    showToast(t('ui.loginRequired') || '로그인이 필요합니다.');
+                } else {
+                    // Clear URL parameters and reload to show user's own map
+                    window.location.href = window.location.pathname;
+                }
+            };
+        }
+    } else if (banner) {
+        banner.classList.add('hidden');
     }
 }
 
@@ -3442,15 +3431,9 @@ async function loadSharedPlaces() {
 }
 
 // Start
+initMap();
 attachPinSettingsEvents();
-loadSharedPlaces().then(() => {
-    // Only load user's places if not in shared mode
-    if (!isSharedMode) {
-        initMap();
-    } else {
-        initMap();
-    }
-});
+loadSharedPlaces();
 updateUILanguage();
 
 // ========== SHARE LINK TOKEN SYSTEM ==========
@@ -3466,7 +3449,8 @@ function generateRandomToken(length = 32) {
 }
 
 // Generate share token
-async function generateShareToken(expirationHours) {
+// Generate share token
+async function generateShareToken(expirationHours, placeIds = null) {
     if (!currentUser) return null;
 
     try {
@@ -3483,7 +3467,8 @@ async function generateShareToken(expirationHours) {
             .insert({
                 token,
                 user_id: currentUser.id,
-                expires_at: expiresAt
+                expires_at: expiresAt,
+                place_ids: placeIds
             })
             .select()
             .single();
@@ -3537,19 +3522,26 @@ async function deactivateShareToken(tokenId) {
 // Load shared places by token
 async function loadSharedPlacesByToken(token) {
     try {
+        console.log('Validating token:', token);
+        const now = new Date().toISOString();
+        console.log('Current time (ISO):', now);
+
         // Validate token
         const { data: tokenData, error: tokenError } = await supabase
             .from('share_tokens')
             .select('*')
             .eq('token', token)
             .eq('is_active', true)
-            .gte('expires_at', new Date().toISOString())
+            .gte('expires_at', now)
             .single();
 
         if (tokenError || !tokenData) {
+            console.error('Token validation failed:', tokenError, tokenData);
             showToast(t('share.linkInvalid'), true);
             return;
         }
+
+        console.log('Token validated successfully:', tokenData);
 
         // Update access count
         await supabase
@@ -3565,20 +3557,37 @@ async function loadSharedPlacesByToken(token) {
         sharedUserId = tokenData.user_id;
 
         // Get user profile
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('nickname')
-            .eq('id', sharedUserId)
-            .single();
+        try {
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('nickname')
+                .eq('id', sharedUserId)
+                .single();
 
-        sharedUserNickname = profile?.nickname || 'Anonymous';
+            if (profileError) {
+                console.warn('Profile fetch failed (Token):', profileError);
+                sharedUserNickname = 'Anonymous';
+            } else {
+                sharedUserNickname = profile?.nickname || 'Anonymous';
+            }
+        } catch (pError) {
+            console.error('Error fetching profile (Token):', pError);
+            sharedUserNickname = 'Anonymous';
+        }
 
         // Load public places
-        const { data: places, error: placesError } = await supabase
+        let placesQuery = supabase
             .from('places')
             .select('*')
             .eq('user_id', sharedUserId)
             .eq('is_public', true);
+
+        // Filter by specific place IDs if present in token
+        if (tokenData.place_ids && tokenData.place_ids.length > 0) {
+            placesQuery = placesQuery.in('id', tokenData.place_ids);
+        }
+
+        const { data: places, error: placesError } = await placesQuery;
 
         if (placesError) throw placesError;
 
@@ -3593,6 +3602,11 @@ async function loadSharedPlacesByToken(token) {
         applyFilters();
         updateSharedModeUI();
 
+        // Auto-show sidebar in shared mode
+        if (sidebar) {
+            sidebar.classList.remove('hidden');
+        }
+
     } catch (error) {
         console.error('Error loading shared places by token:', error);
         showToast(t('share.linkInvalid'), true);
@@ -3606,13 +3620,23 @@ async function loadSharedPlacesByUserId(userId) {
         sharedUserId = userId;
 
         // Get user profile
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('nickname')
-            .eq('id', sharedUserId)
-            .single();
+        try {
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('nickname')
+                .eq('id', sharedUserId)
+                .single();
 
-        sharedUserNickname = profile?.nickname || 'Anonymous';
+            if (profileError) {
+                console.warn('Profile fetch failed (User ID):', profileError);
+                sharedUserNickname = 'Anonymous';
+            } else {
+                sharedUserNickname = profile?.nickname || 'Anonymous';
+            }
+        } catch (pError) {
+            console.error('Error fetching profile (User ID):', pError);
+            sharedUserNickname = 'Anonymous';
+        }
 
         // Load public places
         const { data: places, error } = await supabase
@@ -3633,6 +3657,11 @@ async function loadSharedPlacesByUserId(userId) {
 
         applyFilters();
         updateSharedModeUI();
+
+        // Auto-show sidebar in shared mode
+        if (sidebar) {
+            sidebar.classList.remove('hidden');
+        }
 
     } catch (error) {
         console.error('Error loading shared places:', error);
@@ -3659,14 +3688,18 @@ async function loadAndDisplayActiveTokens() {
             ? t('share.never')
             : `${t('share.expires')}: ${expiresDate.toLocaleString()}`;
 
+        const placesCountText = token.place_ids
+            ? `${token.place_ids.length} ${t('share.placesCount')}`
+            : t('share.allPlaces');
+
         return `
-            <div class="active-link-item">
+            <div class="active-link-item" onclick="selectShareLink('${token.token}')">
                 <div class="link-info">
                     <span class="link-url">${window.location.origin}${window.location.pathname}?token=${token.token}</span>
                     <span class="link-expires">${expiresText}</span>
-                    <span class="link-stats">${t('share.accessed')} ${token.access_count} ${t('share.times')}</span>
+                    <span class="link-stats">${placesCountText} | ${t('share.accessed')} ${token.access_count} ${t('share.times')}</span>
                 </div>
-                <button class="delete-link-btn" onclick="deleteShareLink('${token.id}')">
+                <button class="delete-link-btn" onclick="event.stopPropagation(); deleteShareLink('${token.id}')">
                     ${t('share.deleteLink')}
                 </button>
             </div>
@@ -3684,6 +3717,29 @@ window.deleteShareLink = async (tokenId) => {
         } else {
             showToast('Failed to delete link', true);
         }
+    }
+};
+
+// Select existing share link
+window.selectShareLink = (token) => {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?token=${token}`;
+    shareLinkUrlInput.value = shareUrl;
+
+    // Show the generated section if hidden
+    if (generatedLinkSection) {
+        generatedLinkSection.classList.remove('hidden');
+    }
+
+    // Animation effect
+    if (shareLinkUrlInput) {
+        shareLinkUrlInput.classList.remove('highlight-flash');
+        void shareLinkUrlInput.offsetWidth; // Trigger reflow
+        shareLinkUrlInput.classList.add('highlight-flash');
+
+        // Remove class after animation finishes
+        setTimeout(() => {
+            shareLinkUrlInput.classList.remove('highlight-flash');
+        }, 1200);
     }
 };
 
@@ -3723,7 +3779,11 @@ if (generateShareLinkBtn) {
 
         showToast(t('share.generateLink') + '...');
 
-        const tokenData = await generateShareToken(expirationHours);
+        // Collect currently filtered place IDs
+        const filteredIds = currentFilteredPlaces.map(p => p.id);
+        const placeIds = filteredIds.length > 0 ? filteredIds : null;
+
+        const tokenData = await generateShareToken(expirationHours, placeIds);
 
         if (tokenData) {
             const shareUrl = `${window.location.origin}${window.location.pathname}?token=${tokenData.token}`;

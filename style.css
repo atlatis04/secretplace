@@ -120,6 +120,29 @@ body {
     font-size: 16px;
 }
 
+.go-to-my-map-btn {
+    margin-left: 8px;
+    background: white;
+    color: var(--primary);
+    border: none;
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.go-to-my-map-btn:hover {
+    background: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.go-to-my-map-btn.hidden {
+    display: none;
+}
+
 /* Import Buttons */
 .import-popup-btn {
     background: var(--primary);
@@ -156,6 +179,15 @@ body {
     justify-content: space-between;
     align-items: center;
     gap: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.active-link-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .link-info {
@@ -203,6 +235,24 @@ body {
     color: var(--text-gray);
     padding: 20px;
     font-size: 14px;
+}
+
+/* Animation for Link Selection */
+.highlight-flash {
+    animation: highlight-pulse 1.2s ease-out;
+}
+
+@keyframes highlight-pulse {
+    0% {
+        background-color: var(--primary);
+        box-shadow: 0 0 15px var(--primary);
+        color: white;
+    }
+
+    100% {
+        background-color: transparent;
+        box-shadow: none;
+    }
 }
 
 /* Search Container */
