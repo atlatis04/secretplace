@@ -359,6 +359,22 @@
 
     .hero .privacy-note { max-width: 460px; margin-top: 26px; margin-left: auto; margin-right: auto; }
 
+    /* Hero preview: the real map UI, not an illustration */
+    .memory-map-preview { background: #e8edea; }
+    .memory-map-preview::before { content: none; }
+    #hero-map { position: absolute; inset: 0; background: #e8edea; }
+    .leaflet-container { background: #e8edea; }
+    .hero-map-shade { position: absolute; inset: 0; z-index: 500; pointer-events: none; background: linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgba(255, 255, 255, 0) 30%, rgba(0, 0, 0, .1) 100%); }
+    .hero-pin svg { display: block; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .4)); }
+
+    .trip-label { z-index: 600; }
+    .preview-card { z-index: 600; width: min(310px, 82%); align-items: flex-start; }
+    .preview-card img { width: 72px; height: 72px; flex: none; }
+    .preview-card-body { min-width: 0; }
+    .preview-stars { margin-bottom: 3px; color: #f59e0b; font-size: .74rem; letter-spacing: 1px; }
+    .preview-stars i { color: #cbd5e1; font-style: normal; }
+    .preview-card-tags span { padding: 3px 7px; border-radius: 6px; background: #eef2f7; color: #475569; font-size: .64rem; font-weight: 600; }
+
     @media (max-width: 780px) {
       .nav-links { gap: 15px; }
       .nav-links a:not(.nav-cta) { display: none; }
@@ -389,8 +405,6 @@
   </header>
 
   <section class="hero">
-    <div id="map-bg"></div>
-
     <div class="hero-inner">
       <div class="hero-content">
         <div class="eyebrow">Maplog</div>
@@ -403,26 +417,22 @@
         <p class="privacy-note">지도는 로그인 없이 둘러볼 수 있어요. 내 기록은 기본적으로 나만 볼 수 있습니다.</p>
       </div>
 
-      <div class="memory-map-preview" aria-label="Maplog 기록 예시">
-        <div class="trip-label"><img src="/Maplog_Favicon.png" alt="">2026 봄 부산 여행</div>
-        <div class="preview-route"></div>
-        <div class="map-pin one"><img src="/pin.png" alt="저장한 장소"></div>
-        <div class="map-pin two"><img src="/pin.png" alt="저장한 장소"></div>
-        <div class="map-pin three"><img src="/pin.png" alt="저장한 장소"></div>
+      <div class="memory-map-preview" aria-label="Maplog 지도 화면 미리보기">
+        <div id="hero-map" aria-hidden="true"></div>
+        <div class="hero-map-shade" aria-hidden="true"></div>
+        <div class="trip-label"><img src="/Maplog_Favicon.png" alt="">✈ 2026 겨울 나들이</div>
         <div class="preview-card">
-          <img src="/image1.webp" alt="바닷가 마을 기록 예시">
-          <div>
-            <strong>흰여울문화마을</strong>
-            <p>바다를 보며 천천히 걷기 좋은 오후</p>
-            <div class="preview-card-tags"><span>#산책</span><span>#재방문</span></div>
+          <img src="/image1.webp" alt="정원과 연못이 있는 카페 기록 예시">
+          <div class="preview-card-body">
+            <strong>정원이 있는 카페</strong>
+            <div class="preview-stars">★★★★<i>★</i></div>
+            <p>해 질 무렵 연못 앞자리가 제일 좋았다</p>
+            <div class="preview-card-tags"><span># 카페</span><span># 사진명소</span></div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="pins-container" id="pins-container">
-      <!-- Pins will be added by JS -->
-    </div>
   </section>
 
   <section class="highlights">
@@ -461,12 +471,12 @@
         </div>
       </div>
       <div class="showcase-visual">
-        <img src="/image2.webp" alt="장소와 사진을 기록하는 예시">
+        <img src="/image2.webp" alt="통유리 너머 산이 보이는 카페 내부 기록 예시">
         <div class="visual-note">
           <img src="/pin.png" alt="">
           <div>
-            <strong>오늘의 커피</strong><br>
-            <em>★★★★☆ · 2026. 4. 12.</em>
+            <strong>통유리 창가 자리</strong><br>
+            <em>★★★★★ · 2026. 1. 18.</em>
           </div>
         </div>
       </div>
@@ -482,12 +492,12 @@
         </div>
       </div>
       <div class="showcase-visual">
-        <img src="/image4.webp" alt="여행 컬렉션으로 묶인 장소 예시">
+        <img src="/image4.webp" alt="같은 날 남긴 디저트 기록 예시">
         <div class="visual-note">
           <img src="/Maplog_Favicon.png" alt="">
           <div>
-            <strong>2026 봄 부산 여행</strong><br>
-            <em>장소 12곳 · #맛집 #산책</em>
+            <strong>2026 겨울 나들이</strong><br>
+            <em>장소 4곳 · #카페 #디저트</em>
           </div>
         </div>
       </div>
@@ -528,7 +538,7 @@
         </div>
       </div>
       <div class="showcase-visual">
-        <img src="/image3.webp" alt="공유할 수 있는 장소 기록 예시">
+        <img src="/image3.webp" alt="공유 링크로 전할 수 있는 기록 예시">
         <div class="visual-note">
           <img src="/pin.png" alt="">
           <div>
@@ -603,78 +613,51 @@
 
 
   <script>
-    // Leaflet 배경 초기화
-    const map = L.map('map-bg', {
-      center: [37.5665, 126.9780], // 서울 중심
-      zoom: 13,
+    // Hero preview: the same tile style and pin markup the app itself renders.
+    const heroMap = L.map('hero-map', {
+      center: [35.8562, 129.2247],
+      zoom: 14,
       zoomControl: false,
       attributionControl: false,
       dragging: false,
       touchZoom: false,
       scrollWheelZoom: false,
       doubleClickZoom: false,
+      keyboard: false,
       boxZoom: false
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19
-    }).addTo(map);
+    }).addTo(heroMap);
 
-    // 핀 추가 및 랜덤 배치
-    const pinsContainer = document.getElementById('pins-container');
-    const pinCount = 4;
-    const imgUrls = ['/image1.webp', '/image2.webp', '/image3.webp', '/image4.webp'];
+    // Same pin colours and SVG the map page uses for saved places.
+    const heroPins = [
+      { lat: 35.8612, lng: 129.2172, color: '#ef4444' },
+      { lat: 35.8548, lng: 129.2298, color: '#3b82f6' },
+      { lat: 35.8501, lng: 129.2201, color: '#10b981' },
+      { lat: 35.8585, lng: 129.2331, color: '#f59e0b' }
+    ];
 
-    for (let i = 0; i < pinCount; i++) {
-      const pin = document.createElement('div');
-      pin.className = 'photo-pin';
+    heroPins.forEach(pin => {
+      L.marker([pin.lat, pin.lng], {
+        interactive: false,
+        icon: L.divIcon({
+          className: 'hero-pin',
+          html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36">
+                   <path fill="${pin.color}" d="M12 0C7.58 0 4 3.58 4 8c0 5.25 7 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
+                 </svg>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
+        })
+      }).addTo(heroMap);
+    });
 
-      // 랜덤 위치 설정 (핀 크기를 고려하여 중앙 글자 영역을 완전히 피함)
-      let left, top;
-      let isSafe = false;
-
-      // 핀의 크기를 고려한 안전 영역 배치
-      // 핀은 4개의 코너 영역에만 배치: 좌상, 우상, 좌하, 우하
-      const corners = [
-        { leftMin: 0, leftMax: 20, topMin: 0, topMax: 25 },      // 좌상단
-        { leftMin: 75, leftMax: 95, topMin: 0, topMax: 25 },     // 우상단
-        { leftMin: 0, leftMax: 20, topMin: 70, topMax: 95 },     // 좌하단
-        { leftMin: 75, leftMax: 95, topMin: 70, topMax: 95 }     // 우하단
-      ];
-
-      // 랜덤하게 코너 선택
-      const corner = corners[i % corners.length];
-      left = corner.leftMin + Math.random() * (corner.leftMax - corner.leftMin);
-      top = corner.topMin + Math.random() * (corner.topMax - corner.topMin);
-
-      // 랜덤 회전값 설정
-      const rot = -15 + Math.random() * 30; // -15deg ~ 15deg
-      const rotMid = rot + (Math.random() > 0.5 ? 4 : -4);
-
-      pin.style.left = `${left}%`;
-      pin.style.top = `${top}%`;
-      pin.style.setProperty('--rot', `${rot}deg`);
-      pin.style.setProperty('--rot-mid', `${rotMid}deg`);
-      pin.style.animationDelay = `${Math.random() * 2}s`;
-
-      // 클릭 가능하도록 설정 (지도 이동)
-      pin.style.pointerEvents = 'auto';
-      pin.style.cursor = 'pointer';
-      pin.onclick = () => window.location.href = '/map.html';
-
-      const img = document.createElement('img');
-      img.src = imgUrls[i % imgUrls.length];
-      img.alt = `Memory ${i + 1}`;
-
-      pin.appendChild(img);
-      pinsContainer.appendChild(pin);
-
-      // 나타나는 애니메이션
-      setTimeout(() => {
-        pin.style.opacity = '1';
-        pin.style.transform = `scale(1) rotate(${rot}deg)`;
-      }, 100 + i * 200);
-    }
+    // Keep the saved places framed when the preview is resized.
+    const heroBounds = L.latLngBounds(heroPins.map(pin => [pin.lat, pin.lng]));
+    const fitHero = () => heroMap.fitBounds(heroBounds, { padding: [58, 58] });
+    fitHero();
+    addEventListener('resize', fitHero);
   </script>
 
 </body>

@@ -605,12 +605,18 @@ body {
     border: 1px solid var(--glass-border);
 }
 
-/* 새 장소 기록 / 수정 폼: 장소 목록(사이드바)과 비슷한 너비로 */
+/* 새 장소 기록 / 수정 폼: 장소 목록(사이드바)과 같은 너비로 */
 #modal-overlay .modal {
-    max-width: 360px;
-    padding: 24px;
+    max-width: 320px;
+    padding: 20px;
     max-height: calc(100vh - 40px);
     overflow-y: auto;
+}
+
+/* 좁아진 폭에서 날짜 입력이 잘리지 않도록 두 칸짜리 행을 세로로 쌓는다 */
+#modal-overlay .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
 }
 
 .modal-header {
@@ -2301,6 +2307,7 @@ textarea {
     .modal-overlay { align-items: flex-end; }
     .modal { width: 100%; max-height: calc(100dvh - 16px); overflow-y: auto; border-radius: 24px 24px 0 0; padding: 22px 20px; }
     #modal-overlay .modal { max-width: none; padding: 22px 20px; max-height: calc(100dvh - 16px); }
+    #modal-overlay .form-row { grid-template-columns: 1fr 1fr; gap: 16px; }
     .modal-header { margin-bottom: 18px; }
     .form-group { margin-bottom: 16px; }
 }
