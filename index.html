@@ -224,28 +224,150 @@
         height: 150px;
       }
     }
+
+    /* Landing page conversion layout */
+    header { padding: 16px 7%; }
+    .header-link { color: #286e63; font-size: .9rem; font-weight: 700; text-decoration: none; }
+    .hero { min-height: 760px; padding: 118px 7% 72px; text-align: left; }
+    .hero::after { background: linear-gradient(105deg, rgba(248, 251, 255, .96) 0%, rgba(248, 251, 255, .84) 51%, rgba(248, 251, 255, .45) 100%); }
+    .hero-inner { position: relative; z-index: 10; display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, .88fr); align-items: center; gap: clamp(32px, 7vw, 110px); width: min(1120px, 100%); margin: auto; }
+    .hero-content { max-width: 580px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 18px; padding: 7px 12px; border: 1px solid rgba(45, 204, 173, .25); border-radius: 999px; background: rgba(255, 255, 255, .75); color: #247f6d; font-size: .82rem; font-weight: 700; }
+    .hero h1 { font-size: clamp(2.5rem, 5vw, 4.25rem); margin-bottom: 18px; letter-spacing: -.055em; }
+    .hero p { max-width: 540px; margin-bottom: 28px; font-size: clamp(1rem, 1.5vw, 1.2rem); }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .cta-button { padding: 15px 28px; font-size: 1rem; }
+    .secondary-cta { display: inline-block; padding: 14px 20px; border: 1px solid rgba(40, 110, 99, .25); border-radius: 50px; background: rgba(255, 255, 255, .7); color: #286e63; font-size: .95rem; font-weight: 700; text-decoration: none; transition: .2s ease; }
+    .secondary-cta:hover { transform: translateY(-2px); background: #fff; }
+    .privacy-note { margin-top: 20px; color: #61726f; font-size: .8rem; }
+    .pins-container { display: none; }
+
+    .memory-map-preview { position: relative; min-height: 500px; border: 10px solid rgba(255, 255, 255, .86); border-radius: 30px; overflow: hidden; box-shadow: 0 25px 70px rgba(20, 75, 65, .22); background: #dbeeea; transform: rotate(2deg); }
+    .memory-map-preview::before { content: ''; position: absolute; inset: 0; opacity: .55; background-image: linear-gradient(25deg, transparent 45%, rgba(87, 173, 158, .42) 46%, rgba(87, 173, 158, .42) 49%, transparent 50%), linear-gradient(110deg, transparent 41%, rgba(255,255,255,.9) 42%, rgba(255,255,255,.9) 46%, transparent 47%); background-size: 170px 130px, 210px 180px; }
+    .preview-route { position: absolute; width: 76%; height: 56%; top: 18%; left: 12%; border: 3px dashed #2dccad; border-color: #2dccad transparent transparent #2dccad; border-radius: 50%; transform: rotate(-18deg); opacity: .85; }
+    .map-pin { position: absolute; display: grid; place-items: center; width: 38px; height: 38px; border: 3px solid #fff; border-radius: 50% 50% 50% 0; color: #fff; font-size: 16px; box-shadow: 0 6px 16px rgba(18, 69, 61, .25); transform: rotate(-45deg); }
+    .map-pin span { transform: rotate(45deg); }
+    .map-pin.one { top: 25%; left: 22%; background: #f58b72; }.map-pin.two { top: 50%; right: 22%; background: #2dccad; }.map-pin.three { bottom: 17%; left: 41%; background: #5b82e3; }
+    .preview-card { position: absolute; right: 18px; bottom: 18px; display: flex; width: min(285px, 78%); gap: 11px; padding: 11px; border: 1px solid rgba(255,255,255,.8); border-radius: 16px; background: rgba(255,255,255,.94); box-shadow: 0 10px 24px rgba(25, 75, 67, .2); transform: rotate(-2deg); }
+    .preview-card img { width: 66px; height: 66px; border-radius: 10px; object-fit: cover; }.preview-card strong { display: block; margin: 1px 0 4px; font-size: .9rem; }.preview-card p { margin: 0; color: #6a7673; font-size: .72rem; line-height: 1.4; }.preview-card-tags { display: flex; gap: 4px; margin-top: 5px; }.preview-card-tags span { padding: 3px 5px; border-radius: 5px; background: #e4f8f3; color: #23836f; font-size: .62rem; }
+    .trip-label { position: absolute; top: 21px; left: 20px; padding: 9px 12px; border-radius: 12px; background: rgba(17, 69, 60, .86); color: #fff; font-size: .8rem; font-weight: 700; }
+
+    .home-section { width: min(1120px, 86%); margin: 0 auto; padding: 100px 0; }
+    .section-heading { max-width: 580px; margin-bottom: 34px; }.section-heading .eyebrow { margin-bottom: 12px; }.section-heading h2 { margin-bottom: 12px; color: #193b36; font-size: clamp(1.9rem, 3.3vw, 2.7rem); letter-spacing: -.045em; word-break: keep-all; }.section-heading p { color: #64736f; line-height: 1.7; word-break: keep-all; }
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }.feature-card { min-height: 225px; padding: 27px; border: 1px solid #e1eeeb; border-radius: 20px; background: #fff; box-shadow: 0 10px 30px rgba(38, 96, 84, .06); }.feature-icon { display: grid; place-items: center; width: 46px; height: 46px; margin-bottom: 22px; border-radius: 14px; background: #e5f8f3; font-size: 22px; }.feature-card h3 { margin-bottom: 9px; color: #23453f; font-size: 1.1rem; }.feature-card p { color: #6b7976; font-size: .9rem; line-height: 1.65; word-break: keep-all; }
+    .moment-section { padding-top: 20px; }.moment-panel { display: grid; grid-template-columns: 1.05fr .95fr; overflow: hidden; border-radius: 26px; background: #e6f5f0; }.moment-copy { padding: clamp(32px, 5vw, 65px); }.moment-copy h2 { margin-bottom: 15px; color: #1d453d; font-size: clamp(1.7rem, 3vw, 2.4rem); letter-spacing: -.04em; }.moment-copy p { color: #55726b; line-height: 1.75; word-break: keep-all; }.moment-list { display: grid; align-content: center; gap: 10px; padding: 30px; background: linear-gradient(145deg, #2dccad, #1c8c7d); }.moment-list span { padding: 13px 15px; border: 1px solid rgba(255,255,255,.28); border-radius: 12px; background: rgba(255,255,255,.12); color: #fff; font-size: .9rem; }
+    .privacy-bar { margin: 0 auto 65px; width: min(1120px, 86%); padding: 17px 22px; border-radius: 16px; background: #f0f8f6; color: #487168; font-size: .88rem; text-align: center; }.privacy-bar strong { color: #247d6c; }
+    @media (max-width: 780px) { header { padding: 14px 7%; }.hero { min-height: auto; padding: 112px 7% 65px; }.hero-inner, .moment-panel { grid-template-columns: 1fr; }.hero-content { text-align: center; }.hero-actions { justify-content: center; }.memory-map-preview { min-height: 390px; margin: 10px 5% 0; transform: rotate(0); }.feature-grid { grid-template-columns: 1fr; }.home-section { padding: 68px 0; }.moment-list { padding: 22px; }.privacy-note { margin-left: auto; margin-right: auto; }.preview-card { right: 12px; bottom: 12px; } }
+
+    /* Minimal editorial product landing */
+    body { background: #fff; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Noto Sans KR", sans-serif; }
+    header { height: 52px; padding: 0 max(22px, calc((100% - 1120px) / 2)); background: rgba(255, 255, 255, .78); box-shadow: none; border-bottom: 1px solid rgba(0, 0, 0, .06); }
+    .logo { color: #1d1d1f; font-size: 1.08rem; letter-spacing: -.03em; }.header-link { color: #0066cc; font-size: .82rem; font-weight: 500; }
+    .hero { min-height: auto; padding: 132px 22px 0; background: #f5f5f7; text-align: center; }.hero::after, #map-bg { display: none; }.hero-inner { display: flex; flex-direction: column; gap: 46px; width: min(1120px, 100%); }.hero-content { max-width: 760px; text-align: center; }.eyebrow { margin-bottom: 14px; padding: 0; border: 0; background: transparent; color: #6e6e73; font-size: 1rem; font-weight: 500; }
+    .hero h1 { margin-bottom: 16px; color: #1d1d1f; font-size: clamp(3rem, 6.1vw, 5.2rem); line-height: 1.04; letter-spacing: -.075em; text-shadow: none; }.hero h1 span { color: #1d1d1f; }.hero p { max-width: 670px; margin: 0 auto 25px; color: #6e6e73; font-size: clamp(1.08rem, 1.75vw, 1.45rem); font-weight: 400; line-height: 1.45; }
+    .hero-actions { justify-content: center; gap: 18px; }.cta-button, .secondary-cta { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: #0066cc; font-size: 1.05rem; font-weight: 400; }.cta-button:hover, .secondary-cta:hover { background: transparent; box-shadow: none; color: #0066cc; transform: none; text-decoration: underline; }.cta-button::after, .secondary-cta::after { content: ' ›'; }.privacy-note { margin-top: 22px; color: #86868b; font-size: .78rem; }
+    .memory-map-preview { width: min(960px, 100%); min-height: 500px; margin: 0 auto; border: 1px solid rgba(0, 0, 0, .08); border-bottom: 0; border-radius: 28px 28px 0 0; background: #e8f3ef; box-shadow: 0 -8px 30px rgba(0, 0, 0, .06); transform: none; }.memory-map-preview::before { opacity: .42; }.trip-label { top: 24px; left: 24px; border: 1px solid rgba(0, 0, 0, .08); background: rgba(255, 255, 255, .9); color: #1d1d1f; font-size: .78rem; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 0, 0, .06); }.preview-card { right: 26px; bottom: 25px; border: 1px solid rgba(0, 0, 0, .1); border-radius: 16px; background: rgba(255, 255, 255, .96); box-shadow: 0 10px 25px rgba(0, 0, 0, .12); transform: none; }.preview-card strong { color: #1d1d1f; }.preview-card p { color: #6e6e73; font-size: .72rem; }.preview-card-tags span { background: #f1f5f4; color: #357567; }
+    .home-section { width: min(1200px, 100%); padding: 0 22px 110px; }.home-section:first-of-type { padding-top: 105px; }.section-heading { max-width: 730px; margin: 0 auto 48px; text-align: center; }.section-heading .eyebrow { color: #6e6e73; font-size: .95rem; }.section-heading h2, .moment-copy h2 { color: #1d1d1f; font-size: clamp(2.25rem, 4.3vw, 3.7rem); font-weight: 600; letter-spacing: -.065em; line-height: 1.08; }.section-heading p { color: #6e6e73; font-size: 1.12rem; line-height: 1.5; }
+    .feature-grid { gap: 12px; }.feature-card { min-height: 285px; padding: 34px 30px; border: 0; border-radius: 0; background: #f5f5f7; box-shadow: none; text-align: center; }.feature-card:nth-child(2) { background: #eef7f5; }.feature-card:nth-child(3) { background: #f1f4fb; }.feature-icon { width: auto; height: auto; margin-bottom: 20px; border-radius: 0; background: transparent; font-size: 30px; }.feature-card h3 { margin-bottom: 10px; color: #1d1d1f; font-size: 1.34rem; letter-spacing: -.04em; }.feature-card p { color: #6e6e73; font-size: .96rem; line-height: 1.55; }
+    .moment-section { width: 100%; padding: 0 0 110px; }.moment-panel { grid-template-columns: 1fr 1fr; max-width: 1200px; margin: 0 auto; border-radius: 0; background: #1d1d1f; }.moment-copy { padding: clamp(42px, 6vw, 86px); background: #1d1d1f; }.moment-copy h2 { color: #f5f5f7; }.moment-copy p { color: #a1a1a6; font-size: 1.05rem; }.moment-list { padding: clamp(34px, 5vw, 70px); background: #252527; }.moment-list span { padding: 16px 17px; border: 0; border-bottom: 1px solid rgba(255, 255, 255, .16); border-radius: 0; background: transparent; color: #f5f5f7; font-size: .98rem; }.privacy-bar { width: 100%; margin: 0; padding: 26px 22px 52px; border-radius: 0; background: #fff; color: #86868b; font-size: .83rem; }.privacy-bar strong { color: #515154; }
+    @media (max-width: 780px) { header { padding: 0 22px; }.hero { padding: 104px 18px 0; }.hero-inner { gap: 38px; }.hero h1 { font-size: clamp(2.65rem, 13vw, 4rem); }.hero p { font-size: 1.08rem; }.memory-map-preview { min-height: 390px; border-radius: 20px 20px 0 0; }.home-section, .home-section:first-of-type { padding: 74px 18px; }.feature-grid { grid-template-columns: 1fr; }.feature-card { min-height: 220px; }.moment-section { padding: 0; }.moment-panel { grid-template-columns: 1fr; }.moment-copy, .moment-list { padding: 42px 28px; }.preview-card { right: 14px; bottom: 14px; } }
+
+    /* Use Maplog's own visual assets in the product preview. */
+    .logo { display: flex; align-items: center; gap: 7px; }.logo img { width: 23px; height: 23px; border-radius: 6px; object-fit: cover; }
+    .memory-map-preview { background: #102120 url('/gyeongju_map_bg.png') center / cover; }.memory-map-preview::before { opacity: .34; background: linear-gradient(135deg, rgba(17, 37, 36, .2), rgba(45, 204, 173, .14)); }
+    .trip-label { display: flex; align-items: center; gap: 7px; }.trip-label img { width: 19px; height: 19px; border-radius: 5px; object-fit: cover; }
+    .map-pin { display: block; width: 42px; height: 64px; border: 0; border-radius: 0; background: transparent !important; box-shadow: none; transform: none; }.map-pin img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 7px 8px rgba(0, 0, 0, .28)); }
+    .feature-media { height: 112px; margin: -10px -10px 25px; overflow: hidden; border-radius: 12px; background: #e8eeec; }.feature-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease; }.feature-card:hover .feature-media img { transform: scale(1.05); }
+    .feature-card { padding-top: 26px; }.feature-icon { display: none; }
+    @media (max-width: 780px) { .feature-media { height: 145px; margin-bottom: 20px; }.map-pin { width: 35px; height: 54px; } }
   </style>
 </head>
 
 <body>
 
   <header>
-    <div class="logo">Maplog</div>
+    <div class="logo"><img src="/Maplog_Favicon.png" alt="">Maplog</div>
+    <a class="header-link" href="/map.html">내 지도 열기</a>
   </header>
 
   <section class="hero">
     <div id="map-bg"></div>
 
-    <div class="hero-content">
-      <h1>지도 위에 펼쳐지는<br><span>나만의 조각 앨범</span></h1>
-      <p>사진 한 장에 담긴 그날의 온도와 공기.<br>잊고 싶지 않은 순간들을 지도 위에 차곡차곡 쌓아보세요.</p>
-      <a href="/map.html" class="cta-button">내 추억 저장하러 가기</a>
+    <div class="hero-inner">
+      <div class="hero-content">
+        <div class="eyebrow">나만의 개인 지도 앨범</div>
+        <h1>장소마다 남겨 둔<br><span>나만의 순간들</span></h1>
+        <p>사진, 메모, 방문 날짜를 지도 위에 기록하고<br>여행별로 모아 나만의 추억 지도를 완성하세요.</p>
+        <div class="hero-actions">
+          <a href="/map.html" class="cta-button">내 추억 지도 만들기</a>
+          <a href="#features" class="secondary-cta">어떻게 기록하나요?</a>
+        </div>
+        <p class="privacy-note">내 기록은 나만 볼 수 있고, 원할 때만 링크로 공유할 수 있어요.</p>
+      </div>
+
+      <div class="memory-map-preview" aria-label="Maplog 기록 예시">
+        <div class="trip-label"><img src="/Maplog_Favicon.png" alt="">2026 봄 부산 여행</div>
+        <div class="preview-route"></div>
+        <div class="map-pin one"><img src="/pin.png" alt="저장한 장소"></div>
+        <div class="map-pin two"><img src="/pin.png" alt="저장한 장소"></div>
+        <div class="map-pin three"><img src="/pin.png" alt="저장한 장소"></div>
+        <div class="preview-card">
+          <img src="/image1.webp" alt="바닷가 카페 기록 예시">
+          <div>
+            <strong>흰여울문화마을</strong>
+            <p>바다를 보며 천천히 걷기 좋은 오후</p>
+            <div class="preview-card-tags"><span>#산책</span><span>#재방문</span></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="pins-container" id="pins-container">
       <!-- Pins will be added by JS -->
     </div>
   </section>
+
+  <section id="features" class="home-section">
+    <div class="section-heading">
+      <div class="eyebrow">MAPLOG의 기록 방식</div>
+      <h2>기억을 남기고, 나답게 정리하고, 함께 나누세요.</h2>
+      <p>복잡한 여행 계획 도구가 아니라, 지나간 순간을 다시 꺼내 볼 수 있는 가벼운 개인 지도입니다.</p>
+    </div>
+    <div class="feature-grid">
+      <article class="feature-card">
+        <div class="feature-media"><img src="/image2.webp" alt="장소와 사진을 기록하는 예시"></div>
+        <h3>기록하기</h3>
+        <p>장소, 사진, 메모, 방문 날짜를 한 번에 남겨 그날의 분위기까지 보관하세요.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-media"><img src="/image4.webp" alt="여행 컬렉션에 담긴 장소 예시"></div>
+        <h3>여행으로 묶기</h3>
+        <p>여행 컬렉션과 태그로 흩어진 장소를 취향과 순간에 맞게 정리하세요.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-media"><img src="/image3.webp" alt="공유할 수 있는 장소 기록 예시"></div>
+        <h3>함께 보기</h3>
+        <p>필요한 순간에만 공유 링크와 이미지 카드로 나만의 장소 지도를 전하세요.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="home-section moment-section">
+    <div class="moment-panel">
+      <div class="moment-copy">
+        <h2>이런 순간을 기록해 보세요.</h2>
+        <p>여행지에서 우연히 만난 식당부터, 다시 가고 싶은 동네 카페, 특별한 하루의 사진까지. 작은 장소들이 모여 나만의 이야기가 됩니다.</p>
+      </div>
+      <div class="moment-list">
+        <span>🍜 여행지에서 만난 맛집</span>
+        <span>☕ 다시 가고 싶은 카페</span>
+        <span>📸 특별한 하루의 사진</span>
+        <span>💌 친구에게 추천하고 싶은 장소</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="privacy-bar"><strong>내 추억은 내가 정합니다.</strong> 기본적으로 내 지도는 비공개이며, 공유 링크는 필요할 때만 만들 수 있어요.</div>
 
   <script>
     // Leaflet 배경 초기화
