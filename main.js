@@ -14,6 +14,10 @@ let isSharedMode = false; // Flag to prevent loadPlaces from overwriting shared 
 let sharedUserId = null; // ID of user whose places are being shared
 let sharedUserNickname = null; // Nickname of user sharing places
 let importedPlaceIds = new Set(); // Track which shared places have been imported
+let allTrips = [];
+let allTags = [];
+let selectedTripId = null;
+let selectedTagId = null;
 
 // Initialize userSettings with default values (loaded from localStorage later)
 let userSettings = { handedness: 'right', language: 'ko', mapStyle: 'default', colorLabels: {} };
@@ -227,6 +231,8 @@ const translations = {
         'auth.signupSuccess': '가입 성공! 이메일을 확인해 주세요.',
         'auth.loginSuccess': '로그인 성공!',
         'auth.emailLogin': '이메일 로그인',
+        'auth.emailRequired': '비밀번호를 재설정할 이메일을 입력해 주세요.',
+        'auth.resetEmailSent': '비밀번호 재설정 이메일을 보냈습니다. 받은편지함을 확인해 주세요.',
 
         // Password Change Messages
         'password.mismatch': '새 비밀번호가 일치하지 않습니다.',
@@ -280,11 +286,17 @@ const translations = {
         'ui.loginRequired': '지도를 이용하려면 로그인이 필요합니다.',
         'ui.email': '이메일',
         'ui.password': '비밀번호',
+        'ui.forgotPassword': '비밀번호를 잊으셨나요?',
         'ui.login': '로그인',
         'ui.noAccount': '계정이 없으신가요? 회원가입',
         'ui.haveAccount': '이미 계정이 있으신가요? 로그인',
         'ui.orSignIn': '또는 소셜 로그인',
         'ui.googleSignup': '구글로 시작하기',
+        'ui.tags': '태그',
+        'ui.travelCollection': '여행 컬렉션',
+        'ui.noCollection': '컬렉션에 추가하지 않음',
+        'ui.tagHint': '여러 개는 쉼표(,)로 구분할 수 있습니다.',
+        'ui.tagPlaceholder': '대표 태그에 없으면 입력하세요',
         'ui.naverSignup': '네이버로 시작하기 (준비 중)',
         'ui.kakaoSignup': '카카오로 시작하기 (준비 중)',
 
@@ -293,6 +305,8 @@ const translations = {
         'ui.home': '홈으로',
         'ui.settings': '설정',
         'ui.changePassword': '비밀번호 변경',
+        'ui.deleteAccount': '회원탈퇴',
+        'ui.destroyAccount': '회원정보 파기',
         'ui.logout': '로그아웃',
 
         // UI Text - Date Filter Panel
@@ -442,6 +456,8 @@ const translations = {
         'auth.signupSuccess': 'Sign up successful! Please check your email.',
         'auth.loginSuccess': 'Login successful!',
         'auth.emailLogin': 'Email Login',
+        'auth.emailRequired': 'Enter the email address to reset your password.',
+        'auth.resetEmailSent': 'Password reset email sent. Please check your inbox.',
 
         // Password Change Messages
         'password.mismatch': 'New passwords do not match.',
@@ -495,11 +511,17 @@ const translations = {
         'ui.loginRequired': 'Login required to use the map.',
         'ui.email': 'Email',
         'ui.password': 'Password',
+        'ui.forgotPassword': 'Forgot password?',
         'ui.login': 'Login',
         'ui.noAccount': 'Don\'t have an account? Sign Up',
         'ui.haveAccount': 'Already have an account? Login',
         'ui.orSignIn': 'Or sign in with',
         'ui.googleSignup': 'Start with Google',
+        'ui.tags': 'Tags',
+        'ui.travelCollection': 'Travel collection',
+        'ui.noCollection': 'Not in a collection',
+        'ui.tagHint': 'Separate multiple tags with commas.',
+        'ui.tagPlaceholder': 'Add a tag not listed above',
         'ui.naverSignup': 'Start with Naver (Coming Soon)',
         'ui.kakaoSignup': 'Start with Kakao (Coming Soon)',
 
@@ -508,6 +530,8 @@ const translations = {
         'ui.home': 'Home',
         'ui.settings': 'Settings',
         'ui.changePassword': 'Change Password',
+        'ui.deleteAccount': 'Delete Account',
+        'ui.destroyAccount': 'Delete Account Data',
         'ui.logout': 'Logout',
 
         // UI Text - Date Filter Panel
@@ -672,6 +696,20 @@ const photoPreviewList = document.getElementById('photo-preview-list');
 const placeAddressInput = document.getElementById('place-address');
 const placeCommentInput = document.getElementById('place-comment');
 const placeFilter = document.getElementById('place-filter');
+const placeTagsInput = document.getElementById('place-tags');
+const presetTagList = document.getElementById('preset-tag-list');
+const tagSelectorToggle = document.getElementById('tag-selector-toggle');
+const tagSelectorCount = document.getElementById('tag-selector-count');
+const selectedTagSummary = document.getElementById('selected-tag-summary');
+const tagPickerPanel = document.getElementById('tag-picker-panel');
+const presetTagExtra = document.getElementById('preset-tag-extra');
+const showMoreTagsBtn = document.getElementById('show-more-tags-btn');
+const customTagToggle = document.getElementById('custom-tag-toggle');
+const customTagInputWrap = document.getElementById('custom-tag-input-wrap');
+const placeTripSelect = document.getElementById('place-trip');
+const tripFilterList = document.getElementById('trip-filter-list');
+const tagFilterList = document.getElementById('tag-filter-list');
+const createTripBtn = document.getElementById('create-trip-btn');
 
 // Auth Elements
 const authOverlay = document.getElementById('auth-overlay');
@@ -680,6 +718,7 @@ const closeAuth = document.getElementById('close-auth');
 const authForm = document.getElementById('auth-form');
 const authEmail = document.getElementById('auth-email');
 const authPassword = document.getElementById('auth-password');
+const forgotPasswordBtn = document.getElementById('forgot-password-btn');
 const authTitle = document.getElementById('auth-title');
 const authSubmitBtn = document.getElementById('auth-submit-btn');
 const authSwitchBtn = document.getElementById('auth-switch-btn');
@@ -692,6 +731,11 @@ const userInfoEmail = document.getElementById('user-info-email');
 const userInfoProvider = document.getElementById('user-info-provider');
 const userAvatarInitial = document.getElementById('user-avatar-initial');
 const logoutBtn = document.getElementById('logout-btn');
+const deleteAccountBtn = document.getElementById('delete-account-btn');
+const deleteAccountOverlay = document.getElementById('delete-account-overlay');
+const closeDeleteAccount = document.getElementById('close-delete-account');
+const cancelDeleteAccount = document.getElementById('cancel-delete-account');
+const confirmDeleteAccount = document.getElementById('confirm-delete-account');
 const geoBtn = document.getElementById('geo-btn');
 
 // Password Change Elements
@@ -705,6 +749,8 @@ const currentPasswordInput = document.getElementById('current-password');
 const newPasswordInput = document.getElementById('new-password');
 const confirmPasswordInput = document.getElementById('confirm-password');
 const passwordChangeMsg = document.getElementById('password-change-msg');
+const currentPasswordGroup = document.getElementById('current-password-group');
+let passwordRecoveryMode = false;
 const currentPasswordStatus = document.getElementById('current-password-status');
 
 // Lightbox Elements
@@ -713,19 +759,98 @@ const lightboxImg = document.getElementById('lightbox-img');
 const closeLightbox = document.getElementById('close-lightbox');
 const prevLightbox = document.getElementById('prev-lightbox');
 const nextLightbox = document.getElementById('next-lightbox');
+const lightboxContent = document.querySelector('.lightbox-content');
 
 const mapSearchInput = document.getElementById('map-search-input');
 const searchResults = document.getElementById('search-results');
 const searchClearBtn = document.getElementById('search-clear-btn');
+const firstPlaceEmptyState = document.getElementById('first-place-empty-state');
+const firstPlaceCta = document.getElementById('first-place-cta');
 
 let lightboxImages = [];
 let currentLightboxIndex = 0;
+let lightboxTouchStart = null;
 
 let uploadedPhotos = [];
 let allPlaces = [];
 let currentFilteredPlaces = []; // Global store for filtered places
 let isSignUpMode = false;
 let searchMarker = null; // Temporary marker for a selected search result
+const MAX_PLACE_TAGS = 3;
+
+function getSelectedTagNames() {
+    const presetTags = [...document.querySelectorAll('.preset-tag-btn.selected')].map(button => button.dataset.tag);
+    const customTags = placeTagsInput.value.split(',').map(name => name.trim()).filter(Boolean);
+    return [...new Set([...presetTags, ...customTags])].slice(0, 10);
+}
+
+function updateTagSelectorSummary() {
+    const tagNames = getSelectedTagNames();
+    if (tagSelectorCount) tagSelectorCount.textContent = tagNames.length ? `${tagNames.length}개 선택` : '선택 안 함';
+    if (!selectedTagSummary) return;
+
+    selectedTagSummary.replaceChildren();
+    tagNames.forEach(tagName => {
+        const chip = document.createElement('span');
+        chip.className = 'selected-tag-chip';
+        chip.textContent = tagName;
+        selectedTagSummary.appendChild(chip);
+    });
+}
+
+function setTagPickerExpanded(isExpanded) {
+    tagPickerPanel?.classList.toggle('hidden', !isExpanded);
+    tagPickerPanel?.setAttribute('aria-hidden', String(!isExpanded));
+    tagSelectorToggle?.setAttribute('aria-expanded', String(isExpanded));
+}
+
+function setCustomTagInputExpanded(isExpanded) {
+    customTagInputWrap?.classList.toggle('hidden', !isExpanded);
+    if (customTagToggle) customTagToggle.textContent = isExpanded ? '직접 입력 닫기' : '직접 입력하기';
+}
+
+function setPlaceTagSelection(tagNames = []) {
+    const normalizedTags = tagNames.map(name => name.trim()).filter(Boolean);
+    const presetTagNames = new Set([...document.querySelectorAll('.preset-tag-btn')].map(button => button.dataset.tag));
+    document.querySelectorAll('.preset-tag-btn').forEach(button => {
+        button.classList.toggle('selected', normalizedTags.includes(button.dataset.tag));
+    });
+    placeTagsInput.value = normalizedTags.filter(name => !presetTagNames.has(name)).join(', ');
+    updateTagSelectorSummary();
+    setCustomTagInputExpanded(Boolean(placeTagsInput.value));
+    setTagPickerExpanded(false);
+    presetTagExtra?.classList.add('hidden');
+    showMoreTagsBtn?.setAttribute('aria-expanded', 'false');
+    if (showMoreTagsBtn) showMoreTagsBtn.textContent = '태그 더보기';
+}
+
+presetTagList?.addEventListener('click', event => {
+    const button = event.target.closest('.preset-tag-btn');
+    if (!button) return;
+    if (!button.classList.contains('selected') && getSelectedTagNames().length >= MAX_PLACE_TAGS) {
+        showToast(`태그는 최대 ${MAX_PLACE_TAGS}개까지 선택할 수 있습니다.`, true);
+        return;
+    }
+    button.classList.toggle('selected');
+    updateTagSelectorSummary();
+});
+
+tagSelectorToggle?.addEventListener('click', () => {
+    setTagPickerExpanded(tagPickerPanel?.classList.contains('hidden'));
+});
+
+showMoreTagsBtn?.addEventListener('click', () => {
+    const isExpanded = presetTagExtra?.classList.contains('hidden');
+    presetTagExtra?.classList.toggle('hidden', !isExpanded);
+    showMoreTagsBtn.setAttribute('aria-expanded', String(isExpanded));
+    showMoreTagsBtn.textContent = isExpanded ? '태그 접기' : '태그 더보기';
+});
+
+customTagToggle?.addEventListener('click', () => {
+    setCustomTagInputExpanded(customTagInputWrap?.classList.contains('hidden'));
+});
+
+placeTagsInput?.addEventListener('input', updateTagSelectorSummary);
 
 // Initialize Map
 // Map tile layer configurations
@@ -813,6 +938,15 @@ function initMap() {
         currentUser = session?.user || null;
         updateAuthUI();
 
+        if (event === 'PASSWORD_RECOVERY') {
+            passwordRecoveryMode = true;
+            passwordChangeForm.reset();
+            currentPasswordGroup.hidden = true;
+            currentPasswordInput.required = false;
+            clearPasswordMsg();
+            passwordChangeOverlay.classList.remove('hidden');
+        }
+
         // Handle redirection if flag is set (e.g., from 'Go to My Map' banner)
         if (event === 'SIGNED_IN' && wasGuest && sessionStorage.getItem('redirect_to_my_map') === 'true') {
             sessionStorage.removeItem('redirect_to_my_map');
@@ -870,6 +1004,7 @@ async function loadPlaces() {
             return;
         }
         allPlaces = places || [];
+        await loadOrganizationData();
     } else {
         // Not logged in and not in shared mode: show empty map
         allPlaces = [];
@@ -884,7 +1019,25 @@ async function loadPlaces() {
 
     applyFilters(); // Apply current search/color filters to the fetched data
     updateAuthUI(); // Update UI with photo count
+    updateFirstPlaceEmptyState();
 }
+
+function updateFirstPlaceEmptyState() {
+    const shouldShow = Boolean(currentUser && !isSharedMode && allPlaces.length === 0);
+    firstPlaceEmptyState?.classList.toggle('hidden', !shouldShow);
+}
+
+firstPlaceCta?.addEventListener('click', () => {
+    if (!currentUser || !map) return;
+    const { lat, lng } = map.getCenter();
+    openModal(null, lat, lng, 'Loading location info...');
+    reverseGeocode(lat, lng).then(address => {
+        if (!modalOverlay.classList.contains('hidden')) {
+            document.getElementById('place-address').value = address;
+            document.getElementById('place-address-original').value = address;
+        }
+    });
+});
 
 
 // Render list with categories and filter
@@ -1035,6 +1188,7 @@ function addToList(place) {
                 </div>
             </div>
         </div>
+        ${renderPlaceOrganization(place)}
         ${importButtonHtml}
     `;
     item.onclick = () => {
@@ -1045,6 +1199,20 @@ function addToList(place) {
     };
 
     placeList.appendChild(item);
+}
+
+function renderPlaceOrganization(place) {
+    const trips = (place.trip_ids || [])
+        .map(tripId => allTrips.find(trip => trip.id === tripId))
+        .filter(Boolean);
+    const tags = place.tags || [];
+    if (!trips.length && !tags.length) return '';
+
+    return `
+        <div class="place-organization">
+            ${trips.length ? `<div class="place-collection-row"><span class="organization-label">여행</span>${trips.map(trip => `<span class="collection-badge" style="--collection-color:${escapeHtml(trip.color || '#3b82f6')}">✈ ${escapeHtml(trip.title)}</span>`).join('')}</div>` : ''}
+            ${tags.length ? `<div class="place-tag-row"><span class="organization-label">태그</span>${tags.map(tag => `<span class="tag-badge"># ${escapeHtml(tag.name)}</span>`).join('')}</div>` : ''}
+        </div>`;
 }
 
 // Toggle Place Visibility
@@ -1336,6 +1504,9 @@ function openModal(place = null, lat = null, lng = null, address = '') {
         // Display English address in visible field
         document.getElementById('place-address').value = place.address || '';
         document.getElementById('place-comment').value = place.comment || '';
+        setPlaceTagSelection((place.tags || []).map(tag => tag.name));
+        renderOrganizationControls();
+        placeTripSelect.value = place.trip_ids?.[0] || '';
         document.getElementById('visit-date').value = place.visit_date || '';
         updateStars(place.rating);
 
@@ -1360,6 +1531,9 @@ function openModal(place = null, lat = null, lng = null, address = '') {
         // Display English address in visible field
         document.getElementById('place-address').value = address;
         document.getElementById('place-comment').value = '';
+        setPlaceTagSelection();
+        renderOrganizationControls();
+        placeTripSelect.value = '';
 
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('visit-date').value = today;
@@ -1516,15 +1690,21 @@ placeForm.onsubmit = async (e) => {
 
     let result;
     if (id) {
-        result = await supabase.from('places').update(placeData).eq('id', id);
+        result = await supabase.from('places').update(placeData).eq('id', id).select().single();
     } else {
-        result = await supabase.from('places').insert([placeData]);
+        result = await supabase.from('places').insert([placeData]).select().single();
     }
 
     if (result.error) {
         showToast(t('save.error'));
         console.error(result.error);
     } else {
+        try {
+            await syncPlaceOrganization(result.data.id);
+        } catch (organizationError) {
+            console.error('Place organization save error:', organizationError);
+            showToast('장소는 저장됐지만 태그 또는 여행 연결에 실패했습니다.', true);
+        }
         showToast(t('save.success'));
         modalOverlay.classList.add('hidden');
         loadPlaces();
@@ -1584,8 +1764,34 @@ window.editPlace = async (id) => {
         return;
     }
 
-    const { data, error } = await supabase.from('places').select('*').eq('id', id).single();
-    if (data) openModal(data);
+    // Places already loaded for the map include their tag and collection links.
+    // Prefer that enriched record so the edit modal can restore the saved values.
+    const cachedPlace = allPlaces.find(place => place.id === id);
+    if (cachedPlace && Array.isArray(cachedPlace.tags) && Array.isArray(cachedPlace.trip_ids)) {
+        openModal(cachedPlace);
+        return;
+    }
+
+    const { data: place, error } = await supabase.from('places').select('*').eq('id', id).single();
+    if (error || !place) {
+        console.error('Error loading place for edit:', error);
+        showToast(t('save.error'), true);
+        return;
+    }
+
+    const [tagLinksResult, tripLinksResult] = await Promise.all([
+        supabase.from('place_tags').select('tag_id').eq('place_id', id),
+        supabase.from('trip_places').select('trip_id').eq('place_id', id)
+    ]);
+    if (tagLinksResult.error || tripLinksResult.error) {
+        console.error('Error loading place organization:', tagLinksResult.error || tripLinksResult.error);
+        showToast('태그 또는 여행 컬렉션 정보를 불러오지 못했습니다.', true);
+    }
+
+    const tagIds = (tagLinksResult.data || []).map(link => link.tag_id);
+    place.tags = allTags.filter(tag => tagIds.includes(tag.id));
+    place.trip_ids = (tripLinksResult.data || []).map(link => link.trip_id);
+    openModal(place);
 };
 
 // Lightbox Globals
@@ -1596,25 +1802,50 @@ window.showLightbox = (images, index) => {
     lightbox.classList.remove('hidden');
 };
 
-function updateLightboxImage() {
+function updateLightboxImage(direction = '') {
     lightboxImg.src = lightboxImages[currentLightboxIndex];
+    lightboxImg.classList.remove('slide-from-left', 'slide-from-right');
+    if (direction) {
+        requestAnimationFrame(() => lightboxImg.classList.add(`slide-from-${direction}`));
+    }
     // Show/hide nav buttons based on image count
     const hasMultiple = lightboxImages.length > 1;
     prevLightbox.style.display = hasMultiple ? 'flex' : 'none';
     nextLightbox.style.display = hasMultiple ? 'flex' : 'none';
 }
 
+function moveLightbox(direction) {
+    if (lightboxImages.length < 2) return;
+    currentLightboxIndex = (currentLightboxIndex + direction + lightboxImages.length) % lightboxImages.length;
+    updateLightboxImage(direction > 0 ? 'right' : 'left');
+}
+
 prevLightbox.onclick = (e) => {
     e.stopPropagation();
-    currentLightboxIndex = (currentLightboxIndex - 1 + lightboxImages.length) % lightboxImages.length;
-    updateLightboxImage();
+    moveLightbox(-1);
 };
 
 nextLightbox.onclick = (e) => {
     e.stopPropagation();
-    currentLightboxIndex = (currentLightboxIndex + 1) % lightboxImages.length;
-    updateLightboxImage();
+    moveLightbox(1);
 };
+
+lightboxContent?.addEventListener('touchstart', event => {
+    if (event.touches.length !== 1 || lightboxImages.length < 2) return;
+    const touch = event.touches[0];
+    lightboxTouchStart = { x: touch.clientX, y: touch.clientY };
+}, { passive: true });
+
+lightboxContent?.addEventListener('touchend', event => {
+    if (!lightboxTouchStart || event.changedTouches.length !== 1) return;
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - lightboxTouchStart.x;
+    const deltaY = touch.clientY - lightboxTouchStart.y;
+    lightboxTouchStart = null;
+
+    if (Math.abs(deltaX) < 48 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    moveLightbox(deltaX < 0 ? 1 : -1);
+}, { passive: true });
 
 closeLightbox.onclick = () => lightbox.classList.add('hidden');
 lightbox.onclick = (e) => {
@@ -1629,6 +1860,8 @@ function applyFilters() {
         const matchesSearch = p.name.toLowerCase().includes(searchVal) ||
             (p.address && p.address.toLowerCase().includes(searchVal));
         const matchesColor = currentFilterColor === 'all' || p.color === currentFilterColor;
+        const matchesTrip = !selectedTripId || (p.trip_ids || []).includes(selectedTripId);
+        const matchesTag = !selectedTagId || (p.tags || []).some(tag => tag.id === selectedTagId);
 
         // Date range filtering - only apply if date filter is set
         let matchesDate = true;
@@ -1650,7 +1883,7 @@ function applyFilters() {
         }
         // If no date filter is set, matchesDate remains true for all places
 
-        return matchesSearch && matchesColor && matchesDate;
+        return matchesSearch && matchesColor && matchesDate && matchesTrip && matchesTag;
     });
     console.log('Filtered places:', filtered.length);
     currentFilteredPlaces = filtered; // Update global store
@@ -1902,6 +2135,41 @@ logoutBtn.onclick = async () => {
     }
 };
 
+const closeDeleteAccountModal = () => deleteAccountOverlay.classList.add('hidden');
+
+deleteAccountBtn?.addEventListener('click', () => {
+    if (!currentUser) return;
+    userInfoPanel.classList.add('hidden');
+    deleteAccountOverlay.classList.remove('hidden');
+});
+
+closeDeleteAccount?.addEventListener('click', closeDeleteAccountModal);
+cancelDeleteAccount?.addEventListener('click', closeDeleteAccountModal);
+deleteAccountOverlay?.addEventListener('click', (event) => {
+    if (event.target === deleteAccountOverlay) closeDeleteAccountModal();
+});
+
+confirmDeleteAccount?.addEventListener('click', async () => {
+    if (!currentUser) return;
+
+    try {
+        confirmDeleteAccount.disabled = true;
+        confirmDeleteAccount.innerText = '회원정보 파기 중...';
+        const { error } = await supabase.rpc('delete_own_account');
+        if (error) throw error;
+
+        // The auth row is already gone, so clear the local session without making
+        // another server request and return to the public home page.
+        await supabase.auth.signOut({ scope: 'local' });
+        window.location.href = '/';
+    } catch (error) {
+        console.error('Account deletion error:', error);
+        showToast(`회원탈퇴에 실패했습니다. ${error.message}`, true);
+        confirmDeleteAccount.disabled = false;
+        confirmDeleteAccount.innerText = t('ui.destroyAccount');
+    }
+});
+
 // Settings Modal with Handedness Implementation
 const settingsBtn = document.getElementById('settings-btn');
 const settingsModal = document.getElementById('settings-modal');
@@ -2075,14 +2343,27 @@ authSwitchBtn.onclick = () => {
 
 // Social Auth
 const handleSocialLogin = async (provider) => {
-    showToast(t('social.loginWith', provider));
-    const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-            redirectTo: window.location.origin
-        }
-    });
-    if (error) showToast(error.message);
+    const providerName = provider === 'google' ? 'Google' : provider;
+    const button = provider === 'google' ? document.getElementById('auth-google') : null;
+
+    try {
+        if (button) button.disabled = true;
+        showToast(t('social.loginWith', providerName));
+
+        // Do not pass a share token, a fragment, or other transient state to OAuth.
+        // The path keeps local development and the deployed map page on the same screen.
+        const redirectTo = `${window.location.origin}${window.location.pathname}`;
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider,
+            options: { redirectTo }
+        });
+
+        if (error) throw error;
+    } catch (error) {
+        console.error(`${providerName} login error:`, error);
+        showToast(`${providerName} 로그인에 실패했습니다. ${error.message}`, true);
+        if (button) button.disabled = false;
+    }
 };
 
 authNaver.onclick = () => showToast(t('auth.comingSoon'));
@@ -2115,6 +2396,28 @@ authForm.onsubmit = async (e) => {
     }
 };
 
+forgotPasswordBtn.onclick = async () => {
+    const email = authEmail.value.trim();
+    if (!email) {
+        authEmail.focus();
+        showToast(t('auth.emailRequired'), true);
+        return;
+    }
+
+    try {
+        forgotPasswordBtn.disabled = true;
+        const redirectTo = `${window.location.origin}${window.location.pathname}`;
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        showToast(t('auth.resetEmailSent'));
+    } catch (error) {
+        console.error('Password reset email error:', error);
+        showToast(`비밀번호 재설정 이메일 발송에 실패했습니다. ${error.message}`, true);
+    } finally {
+        forgotPasswordBtn.disabled = false;
+    }
+};
+
 // Password Change Logic
 // Password Change Logic
 function setPasswordMsg(msg, type = 'error') {
@@ -2129,8 +2432,11 @@ function clearPasswordMsg() {
 }
 
 changePasswordBtn.onclick = () => {
+    passwordRecoveryMode = false;
     passwordChangeForm.reset();
     clearPasswordMsg();
+    currentPasswordGroup.hidden = false;
+    currentPasswordInput.required = true;
     currentPasswordStatus.className = 'status-indicator';
     passwordChangeOverlay.classList.remove('hidden');
 };
@@ -2178,16 +2484,18 @@ passwordChangeForm.onsubmit = async (e) => {
         return;
     }
 
-    // 3. Verify current password (Final check)
-    const { error: verifyError } = await supabase.auth.signInWithPassword({
-        email: currentUser.email,
-        password: currentPassword
-    });
+    // 3. The reset email grants a temporary recovery session, so no current password is needed.
+    if (!passwordRecoveryMode) {
+        const { error: verifyError } = await supabase.auth.signInWithPassword({
+            email: currentUser.email,
+            password: currentPassword
+        });
 
-    if (verifyError) {
-        setPasswordMsg(t('password.currentIncorrect'));
-        currentPasswordStatus.className = 'status-indicator error';
-        return;
+        if (verifyError) {
+            setPasswordMsg(t('password.currentIncorrect'));
+            currentPasswordStatus.className = 'status-indicator error';
+            return;
+        }
     }
 
     // 4. Update password
@@ -2314,6 +2622,13 @@ function updateUILanguage() {
     const placeCommentLabel = document.querySelector('label[for="place-comment"]');
     if (placeCommentLabel) placeCommentLabel.innerText = t('ui.comment');
 
+    const placeTagsLabel = document.querySelector('label[for="place-tags"]');
+    if (placeTagsLabel) placeTagsLabel.innerText = t('ui.tags');
+    const placeTripLabel = document.querySelector('label[for="place-trip"]');
+    if (placeTripLabel) placeTripLabel.innerText = t('ui.travelCollection');
+    const tagHint = document.querySelector('#place-tags + .field-hint');
+    if (tagHint) tagHint.innerText = t('ui.tagHint');
+
     const visitDateLabel = document.querySelector('label[for="visit-date"]');
     if (visitDateLabel) visitDateLabel.innerText = t('ui.visitDate');
 
@@ -2341,6 +2656,10 @@ function updateUILanguage() {
 
     const placeCommentInput = document.getElementById('place-comment');
     if (placeCommentInput) placeCommentInput.placeholder = t('ui.leaveNote');
+    const placeTagsInput = document.getElementById('place-tags');
+    if (placeTagsInput) placeTagsInput.placeholder = t('ui.tagPlaceholder');
+
+    renderOrganizationControls();
 
     // Buttons
     const photoAddBtn = document.getElementById('photo-add-btn');
@@ -2391,6 +2710,9 @@ function updateUILanguage() {
         naverBtn.title = t('ui.comingSoon');
     }
 
+    const forgotPasswordBtn = document.getElementById('forgot-password-btn');
+    if (forgotPasswordBtn) forgotPasswordBtn.innerText = t('ui.forgotPassword');
+
     const kakaoBtn = document.getElementById('auth-kakao');
     if (kakaoBtn) {
         const iconSpan = kakaoBtn.querySelector('.icon');
@@ -2424,6 +2746,12 @@ function updateUILanguage() {
 
     const changePasswordBtn = document.getElementById('change-password-btn');
     if (changePasswordBtn) changePasswordBtn.innerText = t('ui.changePassword');
+
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    if (deleteAccountBtn) deleteAccountBtn.innerText = t('ui.deleteAccount');
+
+    const confirmDeleteAccount = document.getElementById('confirm-delete-account');
+    if (confirmDeleteAccount && !confirmDeleteAccount.disabled) confirmDeleteAccount.innerText = t('ui.destroyAccount');
 
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.innerText = t('ui.logout');
@@ -3102,25 +3430,132 @@ async function generateShareImage() {
 // Google OAuth Login Handler
 const googleLoginBtn = document.getElementById('auth-google');
 if (googleLoginBtn) {
-    googleLoginBtn.addEventListener('click', async () => {
-        try {
-            // Get the current page URL to redirect back after OAuth
-            const currentUrl = window.location.href;
+    googleLoginBtn.addEventListener('click', () => handleSocialLogin('google'));
+}
 
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: currentUrl
-                }
-            });
+async function loadOrganizationData() {
+    if (!currentUser || isSharedMode) {
+        allTrips = [];
+        allTags = [];
+        selectedTripId = null;
+        selectedTagId = null;
+        renderOrganizationControls();
+        return;
+    }
 
-            if (error) throw error;
-            // OAuth will redirect to Google, then back to our app
-        } catch (error) {
-            console.error('Google login error:', error);
-            showToast('Google login failed: ' + error.message, true);
-        }
+    const [tripsResult, tagsResult, tripPlacesResult, placeTagsResult] = await Promise.all([
+        supabase.from('trips').select('*').order('created_at', { ascending: false }),
+        supabase.from('tags').select('*').order('name'),
+        supabase.from('trip_places').select('trip_id, place_id'),
+        supabase.from('place_tags').select('place_id, tag_id')
+    ]);
+
+    if (tripsResult.error || tagsResult.error || tripPlacesResult.error || placeTagsResult.error) {
+        if (import.meta.env.DEV) console.warn('Trips and tags are not available yet.', tripsResult.error || tagsResult.error || tripPlacesResult.error || placeTagsResult.error);
+        return;
+    }
+
+    allTrips = tripsResult.data || [];
+    allTags = tagsResult.data || [];
+    const tagById = new Map(allTags.map(tag => [tag.id, tag]));
+    const tagsByPlace = new Map();
+    const tripsByPlace = new Map();
+    (placeTagsResult.data || []).forEach(link => {
+        const tags = tagsByPlace.get(link.place_id) || [];
+        const tag = tagById.get(link.tag_id);
+        if (tag) tags.push(tag);
+        tagsByPlace.set(link.place_id, tags);
     });
+    (tripPlacesResult.data || []).forEach(link => {
+        const trips = tripsByPlace.get(link.place_id) || [];
+        trips.push(link.trip_id);
+        tripsByPlace.set(link.place_id, trips);
+    });
+    allPlaces.forEach(place => {
+        place.tags = tagsByPlace.get(place.id) || [];
+        place.trip_ids = tripsByPlace.get(place.id) || [];
+    });
+    renderOrganizationControls();
+}
+
+function renderOrganizationControls() {
+    if (!tripFilterList || !tagFilterList || !placeTripSelect) return;
+    if (!currentUser || isSharedMode) {
+        tripFilterList.innerHTML = '';
+        tagFilterList.innerHTML = '';
+        placeTripSelect.innerHTML = `<option value="">${escapeHtml(t('ui.noCollection'))}</option>`;
+        return;
+    }
+
+    const tripButtons = [`<button type="button" class="filter-chip ${!selectedTripId ? 'active' : ''}" data-trip-id="">전체 장소</button>`]
+        .concat(allTrips.map(trip => `<button type="button" class="filter-chip ${selectedTripId === trip.id ? 'active' : ''}" data-trip-id="${trip.id}">${escapeHtml(trip.title)}</button>`));
+    const tagButtons = allTags.map(tag => `<button type="button" class="filter-chip ${selectedTagId === tag.id ? 'active' : ''}" data-tag-id="${tag.id}">#${escapeHtml(tag.name)}</button>`);
+    tripFilterList.innerHTML = tripButtons.join('');
+    tagFilterList.innerHTML = tagButtons.join('');
+    placeTripSelect.innerHTML = `<option value="">${escapeHtml(t('ui.noCollection'))}</option>` + allTrips
+        .map(trip => `<option value="${trip.id}">${escapeHtml(trip.title)}</option>`).join('');
+}
+
+tripFilterList?.addEventListener('click', event => {
+    const button = event.target.closest('[data-trip-id]');
+    if (!button) return;
+    selectedTripId = button.dataset.tripId || null;
+    renderOrganizationControls();
+    applyFilters();
+});
+
+tagFilterList?.addEventListener('click', event => {
+    const button = event.target.closest('[data-tag-id]');
+    if (!button) return;
+    selectedTagId = selectedTagId === button.dataset.tagId ? null : button.dataset.tagId;
+    renderOrganizationControls();
+    applyFilters();
+});
+
+createTripBtn?.addEventListener('click', async () => {
+    if (!currentUser) return;
+    const title = window.prompt('여행 컬렉션 이름을 입력하세요.');
+    if (!title?.trim()) return;
+    const { data, error } = await supabase.from('trips').insert({ user_id: currentUser.id, title: title.trim() }).select().single();
+    if (error) {
+        console.error('Create trip error:', error);
+        showToast('여행 컬렉션 생성에 실패했습니다.', true);
+        return;
+    }
+    allTrips.unshift(data);
+    renderOrganizationControls();
+    placeTripSelect.value = data.id;
+    showToast('여행 컬렉션을 만들었습니다.');
+});
+
+async function syncPlaceOrganization(placeId) {
+    const tagNames = getSelectedTagNames();
+    const existingNames = new Set(allTags.map(tag => tag.name.toLocaleLowerCase()));
+    const newNames = tagNames.filter(name => !existingNames.has(name.toLocaleLowerCase()));
+    if (newNames.length) {
+        const { error } = await supabase.from('tags').insert(newNames.map(name => ({ user_id: currentUser.id, name })));
+        if (error) throw error;
+    }
+
+    const { data: currentTags, error: currentTagsError } = await supabase.from('tags').select('*').order('name');
+    if (currentTagsError) throw currentTagsError;
+    allTags = currentTags || [];
+    const tagIds = allTags.filter(tag => tagNames.some(name => name.toLocaleLowerCase() === tag.name.toLocaleLowerCase())).map(tag => tag.id);
+    const selectedTrip = placeTripSelect.value;
+    const [deleteTags, deleteTrips] = await Promise.all([
+        supabase.from('place_tags').delete().eq('place_id', placeId),
+        supabase.from('trip_places').delete().eq('place_id', placeId)
+    ]);
+    if (deleteTags.error) throw deleteTags.error;
+    if (deleteTrips.error) throw deleteTrips.error;
+    if (tagIds.length) {
+        const { error } = await supabase.from('place_tags').insert(tagIds.map(tag_id => ({ place_id: placeId, tag_id })));
+        if (error) throw error;
+    }
+    if (selectedTrip) {
+        const { error } = await supabase.from('trip_places').insert({ trip_id: selectedTrip, place_id: placeId });
+        if (error) throw error;
+    }
 }
 
 // Quick Date Filter Event Handlers

@@ -34,6 +34,14 @@
   <div id="app">
     <div id="map"></div>
 
+    <section id="first-place-empty-state" class="first-place-empty-state hidden" aria-live="polite">
+      <span class="first-place-icon">📍</span>
+      <h2>첫 장소를 기록해 보세요</h2>
+      <p>사진과 짧은 메모를 더해<br>나만의 지도 앨범을 시작할 수 있어요.</p>
+      <button type="button" id="first-place-cta" class="primary-btn">첫 장소 기록하기</button>
+      <span class="first-place-hint">또는 지도에서 원하는 위치를 직접 선택하세요</span>
+    </section>
+
     <!-- Search UI -->
     <div class="search-container">
       <div class="search-box">
@@ -80,6 +88,14 @@
         <button id="close-sidebar" class="close-btn">&times;</button>
       </div>
       <div class="sidebar-search">
+        <section class="collection-filter" aria-label="Travel collections">
+          <div class="collection-filter-header">
+            <strong>My trips</strong>
+            <button type="button" id="create-trip-btn" class="mini-action-btn">+ New</button>
+          </div>
+          <div id="trip-filter-list" class="filter-chip-list"></div>
+          <div id="tag-filter-list" class="filter-chip-list tag-filter-list"></div>
+        </section>
         <input type="text" id="place-filter" placeholder="Search by place or location...">
         <div class="color-filter-group" id="color-filter-group">
           <button class="color-filter-dot active" data-color="all" title="전체"></button>
@@ -91,16 +107,14 @@
         </div>
       </div>
       <div id="place-list" class="place-list">
-        <div id="place-list" class="place-list">
-          <!-- 리스트 항목들이 동적으로 추가됨 -->
-        </div>
+        <!-- 리스트 항목들이 동적으로 추가됨 -->
     </aside>
 
     <!-- 입력/수정 모달 -->
     <div id="modal-overlay" class="modal-overlay hidden">
       <div class="modal">
         <div class="modal-header">
-          <h2 id="modal-title">New Place</h2>
+          <h2 id="modal-title">새 장소 기록</h2>
           <button id="close-modal" class="close-btn">&times;</button>
         </div>
         <form id="place-form">
@@ -108,28 +122,82 @@
           <input type="hidden" id="place-lat">
           <input type="hidden" id="place-lng">
           <input type="hidden" id="place-address-original">
+          <input type="hidden" id="place-address">
 
           <div class="form-group">
-            <label for="place-name">Place Name</label>
-            <input type="text" id="place-name" required placeholder="Enter place name">
+            <label for="place-name">장소명</label>
+            <input type="text" id="place-name" required placeholder="장소 이름을 입력하세요">
           </div>
           <div class="form-group">
-            <label for="place-address">Location (Address)</label>
-            <input type="text" id="place-address" placeholder="Auto-filled when clicking on map">
+            <label for="place-comment">메모</label>
+            <textarea id="place-comment" rows="2" placeholder="이 장소에 대한 기록을 남겨보세요"></textarea>
           </div>
 
           <div class="form-group">
-            <label for="place-comment">Comment</label>
-            <textarea id="place-comment" rows="2" placeholder="Leave a note about this place"></textarea>
+            <label for="place-tags">태그</label>
+            <div class="tag-selector">
+              <button type="button" id="tag-selector-toggle" class="tag-selector-toggle" aria-expanded="false" aria-controls="tag-picker-panel">
+                <span>대표 태그 선택</span>
+                <span id="tag-selector-count" class="tag-selector-count">선택 안 함</span>
+                <span class="tag-selector-chevron" aria-hidden="true">⌄</span>
+              </button>
+              <div id="selected-tag-summary" class="selected-tag-summary" aria-live="polite"></div>
+
+              <div id="tag-picker-panel" class="tag-picker-panel hidden" aria-hidden="true">
+                <p class="tag-picker-help">자주 쓰는 태그를 골라보세요. 최대 3개까지 선택할 수 있습니다.</p>
+                <div id="preset-tag-list" class="preset-tag-list" aria-label="대표 태그 선택">
+                  <button type="button" class="preset-tag-btn" data-tag="맛집">맛집</button>
+                  <button type="button" class="preset-tag-btn" data-tag="카페">카페</button>
+                  <button type="button" class="preset-tag-btn" data-tag="디저트">디저트</button>
+                  <button type="button" class="preset-tag-btn" data-tag="술집">술집</button>
+                  <button type="button" class="preset-tag-btn" data-tag="데이트">데이트</button>
+                  <button type="button" class="preset-tag-btn" data-tag="여행">여행</button>
+                  <div id="preset-tag-extra" class="preset-tag-extra hidden">
+                    <button type="button" class="preset-tag-btn" data-tag="혼자">혼자</button>
+                    <button type="button" class="preset-tag-btn" data-tag="가족">가족</button>
+                    <button type="button" class="preset-tag-btn" data-tag="관광">관광</button>
+                    <button type="button" class="preset-tag-btn" data-tag="자연">자연</button>
+                    <button type="button" class="preset-tag-btn" data-tag="산책">산책</button>
+                    <button type="button" class="preset-tag-btn" data-tag="야경">야경</button>
+                    <button type="button" class="preset-tag-btn" data-tag="사진명소">사진명소</button>
+                    <button type="button" class="preset-tag-btn" data-tag="쇼핑">쇼핑</button>
+                    <button type="button" class="preset-tag-btn" data-tag="문화">문화</button>
+                    <button type="button" class="preset-tag-btn" data-tag="예술">예술</button>
+                    <button type="button" class="preset-tag-btn" data-tag="휴식">휴식</button>
+                    <button type="button" class="preset-tag-btn" data-tag="재방문">재방문</button>
+                    <button type="button" class="preset-tag-btn" data-tag="추천">추천</button>
+                    <button type="button" class="preset-tag-btn" data-tag="숨은명소">숨은명소</button>
+                  </div>
+                </div>
+                <button type="button" id="show-more-tags-btn" class="tag-text-btn" aria-expanded="false">태그 더보기</button>
+                <button type="button" id="custom-tag-toggle" class="tag-text-btn">직접 입력하기</button>
+                <div id="custom-tag-input-wrap" class="custom-tag-input-wrap hidden">
+                  <label for="place-tags" class="custom-tag-label">직접 입력 (선택)</label>
+                  <input type="text" id="place-tags" maxlength="180" placeholder="대표 태그에 없으면 입력하세요">
+                  <small class="field-hint">여러 개는 쉼표(,)로 구분할 수 있습니다.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group place-trip-group">
+            <label for="place-trip">여행 컬렉션</label>
+            <div class="trip-select-wrap">
+              <span class="trip-select-icon" aria-hidden="true">✦</span>
+              <select id="place-trip">
+                <option value="">컬렉션에 추가하지 않음</option>
+              </select>
+              <span class="trip-select-chevron" aria-hidden="true">⌄</span>
+            </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label for="visit-date">Visit Date</label>
+              <label for="visit-date">방문 날짜</label>
               <input type="date" id="visit-date">
             </div>
             <div class="form-group">
-              <label>Rating</label>
+              <label>평점</label>
               <div class="star-rating" id="star-rating">
                 <span class="star" data-value="1">★</span>
                 <span class="star" data-value="2">★</span>
@@ -157,11 +225,11 @@
           </div>
 
           <div class="form-group">
-            <label>Add Photos</label>
+            <label>사진 첨부</label>
             <input type="file" id="photo-input" accept="image/*" multiple class="hidden">
             <div class="photo-upload-container">
               <button type="button" id="photo-add-btn" class="glass-button secondary-btn">
-                <span class="icon">📷</span> Add Photo
+                <span class="icon">📷</span> 사진 추가
               </button>
               <div id="photo-preview-list" class="photo-preview-list"></div>
             </div>
@@ -196,6 +264,7 @@
             <input type="password" id="auth-password" required placeholder="••••••••"
               style="width: 100%; background: #0f172a; border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 16px; color: white;">
           </div>
+          <button type="button" id="forgot-password-btn" class="text-btn">Forgot password?</button>
           <div class="modal-footer" style="flex-direction: column; gap: 8px;">
             <button type="submit" id="auth-submit-btn" class="primary-btn" style="width: 100%;">Login</button>
             <button type="button" id="auth-switch-btn" class="secondary-btn"
@@ -272,6 +341,8 @@
       <button id="change-password-btn" class="secondary-btn"
         style="width: 100%; margin-top: 8px; border-radius: 8px; border: none; padding: 10px; font-weight: 700; cursor: pointer; background: rgba(59, 130, 246, 0.2); color: #60a5fa;">Change
         Password</button>
+      <button id="delete-account-btn" class="secondary-btn"
+        style="width: 100%; margin-top: 8px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.45); padding: 10px; font-weight: 700; cursor: pointer; background: rgba(239, 68, 68, 0.12); color: #fca5a5;">회원탈퇴</button>
       <button id="logout-btn" class="danger-btn"
         style="width: 100%; margin-top: 16px; border-radius: 8px; border: none; padding: 10px; font-weight: 700; cursor: pointer;">Logout</button>
     </div>
@@ -354,9 +425,9 @@
     <!-- Lightbox Modal -->
     <div id="lightbox" class="modal-overlay hidden" style="z-index: 3001;">
       <div class="lightbox-content">
-        <button id="prev-lightbox" class="nav-btn prev">&lsaquo;</button>
+        <button id="prev-lightbox" class="nav-btn prev" aria-label="이전 사진">&lsaquo;</button>
         <img id="lightbox-img" src="" alt="Detail View">
-        <button id="next-lightbox" class="nav-btn next">&rsaquo;</button>
+        <button id="next-lightbox" class="nav-btn next" aria-label="다음 사진">&rsaquo;</button>
         <button id="close-lightbox" class="close-btn"
           style="position: absolute; top: 20px; right: 20px; color: white; font-size: 40px;">&times;</button>
       </div>
@@ -375,7 +446,7 @@
         <form id="password-change-form">
           <div id="password-change-msg" class="message-container hidden"></div>
 
-          <div class="form-group">
+          <div id="current-password-group" class="form-group">
             <label for="current-password">Current Password</label>
             <div class="input-wrapper">
               <input type="password" id="current-password" required placeholder="Current password">
@@ -396,6 +467,24 @@
               style="background: #334155; color: white;">Cancel</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Account deletion confirmation -->
+    <div id="delete-account-overlay" class="modal-overlay hidden" style="z-index: 4000;">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>회원탈퇴</h2>
+          <button id="close-delete-account" class="close-btn">&times;</button>
+        </div>
+        <div class="account-delete-content">
+          <p>계정을 삭제하면 저장한 장소, 사진 연결 정보, 여행 컬렉션, 태그, 게시글과 공유 링크가 모두 삭제됩니다.</p>
+          <p class="account-delete-warning">이 작업은 되돌릴 수 없습니다.</p>
+          <div class="modal-footer">
+            <button type="button" id="confirm-delete-account" class="danger-btn">회원정보 파기</button>
+            <button type="button" id="cancel-delete-account" class="secondary-btn" style="background: #334155; color: white;">취소</button>
+          </div>
+        </div>
       </div>
     </div>
 
