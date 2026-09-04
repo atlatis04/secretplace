@@ -2,6 +2,17 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from './supabase.js'
 import { resizeImage, getOptimizedFileName } from './src/imageResizer.js'
+import { readPhotoContext } from './src/photoExif.js'
+
+// Register the service worker so the app can be installed to a home screen.
+// Kept out of the dev server, where an intercepting worker fights HMR.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => {
+            if (import.meta.env.DEV) console.warn('Service worker registration failed:', err);
+        });
+    });
+}
 import * as htmlToImage from 'html-to-image';
 import { getUserProfile, updateNickname } from './profile-manager.js'
 
@@ -20,7 +31,7 @@ let selectedTripId = null;
 let selectedTagId = null;
 
 // Initialize userSettings with default values (loaded from localStorage later)
-let userSettings = { handedness: 'right', language: 'ko', mapStyle: 'default', colorLabels: {} };
+let userSettings = { handedness: 'right', language: 'ko', mapStyle: 'default', yearGoal: 12, colorLabels: {} };
 
 // Default color labels
 const DEFAULT_COLOR_LABELS = {
@@ -199,6 +210,12 @@ const translations = {
         'photo.totalLimit': (limit, current) => `총 ${limit}장까지 업로드 가능합니다. (현재: ${current}장)`,
         'photo.imageOnly': '이미지 파일만 업로드 가능합니다 (JPG, PNG, GIF, WebP)',
         'photo.sizeLimit': (name) => `파일 크기는 5MB 이하여야 합니다 (${name})`,
+        'photo.locating': '사진 위치 확인 중...',
+        'photo.exifNoLocation': '사진에 위치 정보가 없어 지도 중심으로 설정했어요',
+        'save.noLocation': '위치를 확인할 수 없습니다. 지도에서 장소를 선택해 주세요.',
+        'photo.exifBoth': '사진에서 위치와 날짜를 불러왔어요',
+        'photo.exifLocation': '사진에서 위치를 불러왔어요',
+        'photo.exifDate': '사진에서 촬영 날짜를 불러왔어요',
         'photo.optimizing': '사진 최적화 중...',
         'photo.uploading': '사진 업로드 중...',
         'photo.uploadFailed': '사진 업로드 실패',
@@ -424,6 +441,12 @@ const translations = {
         'photo.totalLimit': (limit, current) => `Maximum ${limit} photos total. (Current: ${current})`,
         'photo.imageOnly': 'Only image files allowed (JPG, PNG, GIF, WebP)',
         'photo.sizeLimit': (name) => `File size must be under 5MB (${name})`,
+        'photo.locating': 'Looking up the photo location...',
+        'photo.exifNoLocation': 'No location in the photo, so the map centre was used',
+        'save.noLocation': 'No location found. Please pick the place on the map.',
+        'photo.exifBoth': 'Location and date filled in from the photo',
+        'photo.exifLocation': 'Location filled in from the photo',
+        'photo.exifDate': 'Date filled in from the photo',
         'photo.optimizing': 'Optimizing photo...',
         'photo.uploading': 'Uploading photo...',
         'photo.uploadFailed': 'Photo upload failed',
@@ -960,6 +983,7 @@ function initMap() {
         }
 
         loadPlaces();
+        consumePendingPhotoRecord();
         loadPinSettings();
     });
 
@@ -1030,6 +1054,44 @@ async function loadPlaces() {
 function updateFirstPlaceEmptyState() {
     const shouldShow = Boolean(currentUser && !isSharedMode && allPlaces.length === 0);
     firstPlaceEmptyState?.classList.toggle('hidden', !shouldShow);
+}
+
+// Photo-first recording: open an empty form and let the photo say where and
+// when. Falls back to the map centre only if the photo carries no location.
+let photoFirstPending = false;
+let pendingPhotoRecord = false;
+
+// The home-screen shortcut fires before there is a session or a map, so it
+// waits here until both exist.
+function consumePendingPhotoRecord() {
+    if (!pendingPhotoRecord || !currentUser || !map) return;
+    pendingPhotoRecord = false;
+    startPhotoRecord();
+}
+
+function startPhotoRecord() {
+    if (!currentUser) {
+        showToast(t('ui.loginRequired'));
+        authOverlay?.classList.remove('hidden');
+        return;
+    }
+    photoFirstPending = true;
+    openModal(null, null, null, '');
+    document.getElementById('place-lat').value = '';
+    document.getElementById('place-lng').value = '';
+    document.getElementById('place-address').value = '';
+    document.getElementById('place-address-original').value = '';
+    photoInput.click();
+}
+
+document.getElementById('photo-record-btn')?.addEventListener('click', startPhotoRecord);
+document.getElementById('first-place-photo-cta')?.addEventListener('click', startPhotoRecord);
+
+// Home-screen shortcut lands here; drop the parameter so a reload is a plain
+// map open rather than a second file picker.
+if (new URLSearchParams(location.search).get('action') === 'photo') {
+    history.replaceState(null, '', location.pathname);
+    pendingPhotoRecord = true;
 }
 
 firstPlaceCta?.addEventListener('click', () => {
@@ -1566,12 +1628,83 @@ function updateStars(val) {
     });
 }
 
+// Fill the location and visit date from the first photo that carries them,
+// but never overwrite something the user already chose.
+async function applyPhotoContext(files) {
+    const latInput = document.getElementById('place-lat');
+    const lngInput = document.getElementById('place-lng');
+    const dateInput = document.getElementById('visit-date');
+
+    const needsCoords = !latInput.value || !lngInput.value;
+    const needsDate = !dateInput.value;
+    if (!needsCoords && !needsDate) return;
+
+    let filledCoords = false;
+    let filledDate = false;
+
+    for (const file of files) {
+        if (!needsCoords && !needsDate) break;
+        const context = await readPhotoContext(file);
+        if (!context) continue;
+
+        if (needsCoords && !filledCoords && context.latitude !== null) {
+            latInput.value = context.latitude;
+            lngInput.value = context.longitude;
+            filledCoords = true;
+        }
+        if (needsDate && !filledDate && context.visitDate) {
+            dateInput.value = context.visitDate;
+            filledDate = true;
+        }
+    }
+
+    if (filledCoords) {
+        const lat = Number(latInput.value);
+        const lng = Number(lngInput.value);
+        if (map) map.setView([lat, lng], Math.max(map.getZoom(), 16));
+
+        const addressInput = document.getElementById('place-address');
+        const originalAddressInput = document.getElementById('place-address-original');
+        addressInput.value = t('photo.locating');
+        const address = await reverseGeocode(lat, lng);
+        // The modal may have been closed or reused while Nominatim answered.
+        if (Number(latInput.value) === lat && Number(lngInput.value) === lng) {
+            addressInput.value = address;
+            originalAddressInput.value = address;
+        }
+    }
+
+    // A photo-first record with no GPS would otherwise have nowhere to land,
+    // so it starts at the map centre and says so.
+    if (!filledCoords && photoFirstPending && map) {
+        const centre = map.getCenter();
+        latInput.value = centre.lat;
+        lngInput.value = centre.lng;
+        const addressInput = document.getElementById('place-address');
+        const originalAddressInput = document.getElementById('place-address-original');
+        addressInput.value = t('photo.locating');
+        const address = await reverseGeocode(centre.lat, centre.lng);
+        addressInput.value = address;
+        originalAddressInput.value = address;
+        showToast(t('photo.exifNoLocation'));
+    }
+    photoFirstPending = false;
+
+    if (filledCoords && filledDate) showToast(t('photo.exifBoth'));
+    else if (filledCoords) showToast(t('photo.exifLocation'));
+    else if (filledDate) showToast(t('photo.exifDate'));
+}
+
 // Photo Upload Logic
 photoAddBtn.onclick = () => photoInput.click();
 
 photoInput.onchange = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
+
+    // The camera already knew where and when. Fill the blanks from the photo
+    // before resizeImage() strips its EXIF.
+    await applyPhotoContext(files);
 
     // Check upload limits
     const currentPinPhotos = uploadedPhotos.length;
@@ -1681,12 +1814,21 @@ placeForm.onsubmit = async (e) => {
     const rating = parseInt(document.getElementById('rating').value);
     const color = document.querySelector('input[name="color"]:checked').value;
 
+    const fallbackLat = currentPlace ? currentPlace.latitude : null;
+    const fallbackLng = currentPlace ? currentPlace.longitude : null;
+    const finalLat = Number.isFinite(lat) ? lat : fallbackLat;
+    const finalLng = Number.isFinite(lng) ? lng : fallbackLng;
+    if (!Number.isFinite(finalLat) || !Number.isFinite(finalLng)) {
+        showToast(t('save.noLocation'), true);
+        return;
+    }
+
     const placeData = {
         name,
         address,
         comment,
-        latitude: lat || (currentPlace ? currentPlace.latitude : 0),
-        longitude: lng || (currentPlace ? currentPlace.longitude : 0),
+        latitude: finalLat,
+        longitude: finalLng,
         visit_date: date || null,
         rating,
         color,
@@ -2184,6 +2326,7 @@ const closeSettings = document.getElementById('close-settings');
 const handednessSelect = document.getElementById('handedness-select');
 const languageSelect = document.getElementById('language-select');
 const mapStyleSelect = document.getElementById('map-style-select');
+const yearGoalInput = document.getElementById('year-goal-input');
 const saveSettingsBtn = document.getElementById('save-settings-btn');
 
 // Load settings from localStorage
@@ -2296,6 +2439,7 @@ if (settingsBtn) {
         handednessSelect.value = settings.handedness;
         languageSelect.value = settings.language;
         mapStyleSelect.value = settings.mapStyle || 'default'; // Ensure default if not set
+        if (yearGoalInput) yearGoalInput.value = settings.yearGoal || DEFAULT_YEAR_GOAL;
         settingsModal.classList.remove('hidden');
         userInfoPanel.classList.add('hidden');
     };
@@ -2309,10 +2453,13 @@ if (closeSettings) {
 
 if (saveSettingsBtn) {
     saveSettingsBtn.onclick = () => {
+        const goalValue = Math.min(999, Math.max(1, parseInt(yearGoalInput?.value, 10) || DEFAULT_YEAR_GOAL));
         const newSettings = {
+            ...userSettings,
             handedness: handednessSelect.value,
             language: languageSelect.value,
-            mapStyle: mapStyleSelect.value
+            mapStyle: mapStyleSelect.value,
+            yearGoal: goalValue
         };
         const languageChanged = userSettings.language !== newSettings.language;
         const mapStyleChanged = userSettings.mapStyle !== newSettings.mapStyle;
@@ -3254,6 +3401,75 @@ window.addFromSearch = async (name, address, lat, lon) => {
 };
 
 
+// --- Travel Wrapped statistics ---
+
+const DEFAULT_YEAR_GOAL = 12;
+
+// Great-circle distance between two coordinates, in kilometres.
+function haversineKm(aLat, aLng, bLat, bLng) {
+    const toRad = deg => (deg * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(bLat - aLat);
+    const dLng = toRad(bLng - aLng);
+    const h = Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+// Distance walked through the places in visit order. Undated places have no
+// position in the trip, so they are left out of the path rather than guessed.
+function calculateTravelDistance(places) {
+    const route = places
+        .filter(p => p.visit_date && Number.isFinite(p.latitude) && Number.isFinite(p.longitude))
+        .sort((a, b) => new Date(a.visit_date) - new Date(b.visit_date));
+
+    let total = 0;
+    for (let i = 1; i < route.length; i++) {
+        total += haversineKm(
+            route[i - 1].latitude, route[i - 1].longitude,
+            route[i].latitude, route[i].longitude
+        );
+    }
+    return total;
+}
+
+function formatDistance(km) {
+    if (km < 1) return '0';
+    return Math.round(km).toLocaleString('en-US');
+}
+
+// The label people recognise their year by: the tag they used most, falling
+// back to the city that shows up most often in the saved addresses.
+function mostVisitedLabel(places) {
+    const tally = new Map();
+    places.forEach(place => {
+        (place.tags || []).forEach(tag => {
+            if (tag?.name) tally.set(tag.name, (tally.get(tag.name) || 0) + 1);
+        });
+    });
+
+    if (!tally.size) {
+        places.forEach(place => {
+            const city = place.address?.split(',')[0]?.trim();
+            if (city) tally.set(city, (tally.get(city) || 0) + 1);
+        });
+    }
+
+    if (!tally.size) return '-';
+    return [...tally.entries()].sort((a, b) => b[1] - a[1])[0][0];
+}
+
+function dominantVisitYear(places) {
+    const years = new Map();
+    places.forEach(place => {
+        if (!place.visit_date) return;
+        const year = new Date(place.visit_date).getFullYear();
+        if (!Number.isNaN(year)) years.set(year, (years.get(year) || 0) + 1);
+    });
+    if (!years.size) return new Date().getFullYear();
+    return [...years.entries()].sort((a, b) => b[1] - a[1])[0][0];
+}
+
 // --- Cyberpunk Dashboard Share Image Logic ---
 async function generateShareImage() {
     const template = document.getElementById('share-card-template');
@@ -3266,25 +3482,37 @@ async function generateShareImage() {
         return;
     }
 
-    const topPlaces = targetPlaces.slice(0, 8);
+    // Every stat below is computed over the whole selection. Slicing to the
+    // first few places here used to cap the headline count and skew the rest.
 
-    // Calculate statistics
-    const uniqueCountries = new Set(topPlaces.map(p => {
+    const uniqueCountries = new Set(targetPlaces.map(p => {
         const parts = p.address?.split(',') || [];
-        return parts.length > 0 ? parts[parts.length - 1].trim() : '';
+        return parts.length > 1 ? parts[parts.length - 1].trim() : '';
     }).filter(c => c)).size;
 
-    const avgRating = (topPlaces.reduce((sum, p) => sum + (p.rating || 0), 0) / topPlaces.length).toFixed(1);
+    const ratedPlaces = targetPlaces.filter(p => p.rating > 0);
+    const avgRating = ratedPlaces.length
+        ? (ratedPlaces.reduce((sum, p) => sum + p.rating, 0) / ratedPlaces.length).toFixed(1)
+        : '0.0';
 
     // Update stat cards
-    document.querySelector('#stat-places .stat-number').textContent = topPlaces.length;
+    document.querySelector('#stat-places .stat-number').textContent = targetPlaces.length;
     document.querySelector('#stat-countries .stat-number').textContent = uniqueCountries;
     document.querySelector('#stat-rating .stat-number').textContent = `${avgRating}★`;
+    document.querySelector('#stat-distance .stat-number').textContent =
+        formatDistance(calculateTravelDistance(targetPlaces));
 
-    // Calculate progress (example: 80% of 10 places goal)
-    const goalPlaces = 10;
-    const progressPercent = Math.min(100, Math.round((topPlaces.length / goalPlaces) * 100));
+    // Title reflects the period the places actually fall in.
+    const cardYear = dominantVisitYear(targetPlaces);
+    const cardTitle = document.getElementById('cyberpunk-title');
+    if (cardTitle) cardTitle.textContent = `MY ${cardYear} TRAVEL WRAPPED`;
+
+    // Progress against the user's own yearly goal.
+    const goalPlaces = Math.max(1, Number(userSettings.yearGoal) || DEFAULT_YEAR_GOAL);
+    const progressPercent = Math.min(100, Math.round((targetPlaces.length / goalPlaces) * 100));
     document.querySelector('.progress-text').textContent = `${progressPercent}%`;
+    const goalLabel = document.querySelector('#goal-progress .progress-label');
+    if (goalLabel) goalLabel.textContent = `YEAR GOAL ${targetPlaces.length}/${goalPlaces}`;
 
     // Update progress circle
     const progressCircle = document.getElementById('progress-circle');
@@ -3292,20 +3520,21 @@ async function generateShareImage() {
     const offset = circumference - (progressPercent / 100) * circumference;
     progressCircle.style.strokeDashoffset = offset;
 
-    // Add top 4 photos
+    // Best-rated places carry the photo grid.
     const photosGrid = document.getElementById('top-photos');
     photosGrid.innerHTML = '';
-    topPlaces.slice(0, 4).forEach(place => {
-        if (place.photo_urls && place.photo_urls.length > 0) {
+    targetPlaces
+        .filter(place => place.photo_urls && place.photo_urls.length > 0)
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+        .slice(0, 4)
+        .forEach(place => {
             const img = document.createElement('img');
             img.src = place.photo_urls[0];
             img.crossOrigin = 'anonymous';
             photosGrid.appendChild(img);
-        }
-    });
+        });
 
-    // Calculate most visited type (simplified)
-    document.querySelector('.mv-value').textContent = 'Cafes';
+    document.querySelector('.mv-value').textContent = mostVisitedLabel(targetPlaces);
 
     // Create month timeline
     const monthTimeline = document.getElementById('month-timeline');
@@ -3314,10 +3543,10 @@ async function generateShareImage() {
 
     // Count visits per month
     const monthCounts = new Array(12).fill(0);
-    topPlaces.forEach(place => {
+    targetPlaces.forEach(place => {
         if (place.visit_date) {
             const month = new Date(place.visit_date).getMonth();
-            monthCounts[month]++;
+            if (!Number.isNaN(month)) monthCounts[month]++;
         }
     });
 

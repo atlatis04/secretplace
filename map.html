@@ -24,6 +24,12 @@
 
   <link rel="canonical" href="https://maplog.space/map.html">
   <link rel="icon" type="image/png" href="/Maplog_Favicon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Maplog">
+  <link rel="apple-touch-icon" href="/icon-192.png">
   <link rel="stylesheet" href="./style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,8 +44,9 @@
       <span class="first-place-icon">📍</span>
       <h2>첫 장소를 기록해 보세요</h2>
       <p>사진과 짧은 메모를 더해<br>나만의 지도 앨범을 시작할 수 있어요.</p>
-      <button type="button" id="first-place-cta" class="primary-btn">첫 장소 기록하기</button>
-      <span class="first-place-hint">또는 지도에서 원하는 위치를 직접 선택하세요</span>
+      <button type="button" id="first-place-photo-cta" class="primary-btn">사진으로 기록하기</button>
+      <button type="button" id="first-place-cta" class="secondary-btn">지도에서 직접 고르기</button>
+      <span class="first-place-hint">사진에 위치가 담겨 있으면 장소와 날짜가 자동으로 채워져요</span>
     </section>
 
     <!-- Search UI -->
@@ -62,6 +69,9 @@
     <div class="map-controls-repositioned">
       <button id="auth-toggle-btn" class="glass-button square" title="Login/Logout">
         <span class="icon">👤</span>
+      </button>
+      <button id="photo-record-btn" class="glass-button square" title="사진으로 기록">
+        <span class="icon">📸</span>
       </button>
       <button id="pin-settings-btn" class="glass-button square" title="Pin Settings">
         <span class="icon">📍</span>
@@ -411,6 +421,15 @@
             <option value="light" style="background: #1a1a2e; color: white;">Light</option>
             <option value="satellite" style="background: #1a1a2e; color: white;">Satellite</option>
           </select>
+        </div>
+        <div class="setting-group" style="margin-bottom: 24px;">
+          <label for="year-goal-input"
+            style="display: block; margin-bottom: 8px; font-weight: 600; color: rgba(255, 255, 255, 0.9); font-size: 15px;">Yearly
+            Goal</label>
+          <input type="number" id="year-goal-input" min="1" max="999" step="1"
+            style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); color: white; font-size: 15px; font-weight: 500;">
+          <small id="year-goal-hint"
+            style="display: block; margin-top: 6px; color: rgba(255, 255, 255, 0.6); font-size: 12px;">공유 카드의 목표 달성률 기준이 됩니다.</small>
         </div>
         <button id="save-settings-btn" class="primary-btn"
           style="width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 15px;">Save</button>

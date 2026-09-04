@@ -2253,8 +2253,11 @@ textarea {
 .first-place-icon { display: block; margin-bottom: 10px; font-size: 32px; }
 .first-place-empty-state h2 { margin-bottom: 9px; font-size: 19px; }
 .first-place-empty-state p { margin-bottom: 18px; color: var(--text-gray); font-size: 13px; line-height: 1.55; }
-.first-place-empty-state .primary-btn { width: 100%; padding: 11px 16px; }
-.first-place-hint { display: block; margin-top: 12px; color: #64748b; font-size: 11px; }
+.first-place-empty-state .primary-btn,
+.first-place-empty-state .secondary-btn { width: 100%; padding: 11px 16px; border-radius: 12px; font-size: 14px; font-weight: 700; }
+.first-place-empty-state .secondary-btn { margin-top: 8px; border: 1px solid rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .06); color: #cbd5e1; cursor: pointer; }
+.first-place-empty-state .secondary-btn:hover { background: rgba(255, 255, 255, .12); }
+.first-place-hint { display: block; margin-top: 14px; color: #64748b; font-size: 11px; line-height: 1.5; }
 
 .account-delete-content { color: var(--text-gray); font-size: 14px; line-height: 1.6; }
 .account-delete-warning { margin-top: 12px; color: #fca5a5; font-weight: 700; }
