@@ -859,13 +859,18 @@ const MAP_STYLES = {
         url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         attribution: '© OpenStreetMap contributors'
     },
+    // CARTO's basemaps now require an API key, so the grey canvas basemaps
+    // Esri serves without one are used instead. They are only tiled to zoom
+    // 16, so maxNativeZoom lets Leaflet upscale beyond that.
     dark: {
-        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        attribution: '© OpenStreetMap © CARTO'
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        attribution: '© Esri © OpenStreetMap contributors',
+        options: { maxNativeZoom: 16 }
     },
     light: {
-        url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-        attribution: '© OpenStreetMap © CARTO'
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        attribution: '© Esri © OpenStreetMap contributors',
+        options: { maxNativeZoom: 16 }
     },
     satellite: {
         url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -1252,7 +1257,9 @@ function applyMapStyle(styleName) {
     // Add new tile layer
     currentTileLayer = L.tileLayer(style.url, {
         attribution: style.attribution,
-        crossOrigin: 'anonymous'
+        crossOrigin: 'anonymous',
+        maxZoom: 19,
+        ...(style.options || {})
     }).addTo(map);
 }
 
