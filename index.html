@@ -7,20 +7,20 @@
   <title>Maplog | Log your day</title>
 
   <!-- SEO Meta Tags -->
-  <meta name="description" content="Maplog - 지도 위에 나만의 추억을 기록하세요. 사진과 함께 장소를 저장하고 공유하는 감성 지도 서비스">
-  <meta name="keywords" content="지도, 여행 기록, 사진 앨범, 위치 기반, 추억 저장, maplog, 지도 일기">
+  <meta name="description" content="Maplog - 다녀온 모든 곳이 하나의 지도가 됩니다. 사진과 메모, 별점과 방문 날짜를 남기고 여행별로 묶어 보관하는 나만의 지도 앨범 - Maplog">
+  <meta name="keywords" content="지도, 여행 기록, 사진 앨범, 위치 기반, 추억 저장, maplog, 지도 일기, 여행 컬렉션, 장소 기록, 여행 결산">
   <meta name="author" content="Maplog">
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="Maplog | Log your day">
-  <meta property="og:description" content="지도 위에 나만의 추억을 기록하세요. 사진과 함께 장소를 저장하고 공유하는 감성 지도 서비스">
+  <meta property="og:description" content="다녀온 모든 곳이 하나의 지도가 됩니다. 사진과 메모, 별점과 방문 날짜를 남기고 여행별로 묶어 보관하는 나만의 지도 앨범 - Maplog">
   <meta property="og:url" content="https://maplog.space">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Maplog | Log your day">
-  <meta name="twitter:description" content="지도 위에 나만의 추억을 기록하세요">
+  <meta name="twitter:description" content="다녀온 모든 곳이 하나의 지도가 됩니다. 사진과 메모로 남기는 나만의 지도 앨범">
 
   <link rel="canonical" href="https://maplog.space">
   <link rel="icon" type="image/png" href="/Maplog_Favicon.png">
@@ -280,6 +280,100 @@
     .feature-media { height: 112px; margin: -10px -10px 25px; overflow: hidden; border-radius: 12px; background: #e8eeec; }.feature-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease; }.feature-card:hover .feature-media img { transform: scale(1.05); }
     .feature-card { padding-top: 26px; }.feature-icon { display: none; }
     @media (max-width: 780px) { .feature-media { height: 145px; margin-bottom: 20px; }.map-pin { width: 35px; height: 54px; } }
+
+    /* ── Apple-style narrative landing ───────────────────────────── */
+    :root { --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b; --tint: #0066cc; --panel: #f5f5f7; --hair: rgba(0, 0, 0, .1); }
+
+    .nav-links { display: flex; align-items: center; gap: 22px; }
+    .nav-links a { color: var(--ink); font-size: .82rem; font-weight: 400; text-decoration: none; opacity: .85; }
+    .nav-links a:hover { opacity: 1; }
+    .nav-links a.nav-cta { color: var(--tint); }
+
+    .lede { display: block; color: var(--ink-3); }
+
+    /* Highlights */
+    .highlights { padding: 96px 22px 34px; background: #fff; }
+    .highlights-inner { width: min(1120px, 100%); margin: 0 auto; }
+    .highlights h2 { margin-bottom: 40px; color: var(--ink); font-size: clamp(1.6rem, 2.6vw, 2.1rem); font-weight: 600; letter-spacing: -.045em; }
+    .highlight-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 34px; }
+    .highlight-item { padding-top: 20px; border-top: 1px solid var(--hair); }
+    .highlight-item strong { display: block; margin-bottom: 7px; color: var(--ink); font-size: clamp(1.5rem, 2.3vw, 2rem); font-weight: 600; letter-spacing: -.05em; }
+    .highlight-item span { color: var(--ink-2); font-size: .92rem; line-height: 1.5; word-break: keep-all; }
+
+    /* Showcase */
+    .showcase { width: min(1200px, 100%); margin: 0 auto; padding: 0 22px; }
+    .showcase-panel { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: clamp(30px, 5vw, 76px); padding: 96px 0; border-bottom: 1px solid var(--hair); }
+    .showcase-panel:last-child { border-bottom: 0; }
+    .showcase-panel.flip .showcase-copy { order: 2; }
+    .showcase-copy .kicker { margin-bottom: 13px; color: var(--tint); font-size: .87rem; font-weight: 600; letter-spacing: .01em; }
+    .showcase-copy h3 { margin-bottom: 17px; color: var(--ink); font-size: clamp(1.9rem, 3.5vw, 3rem); font-weight: 600; line-height: 1.1; letter-spacing: -.06em; word-break: keep-all; }
+    .showcase-copy p { color: var(--ink-2); font-size: clamp(1rem, 1.35vw, 1.14rem); line-height: 1.6; word-break: keep-all; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .chip-row span { padding: 7px 13px; border-radius: 999px; background: var(--panel); color: #4a4a4f; font-size: .84rem; font-weight: 500; }
+
+    .showcase-visual { position: relative; overflow: hidden; min-height: 370px; border-radius: 22px; background: var(--panel); }
+    .showcase-visual img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .visual-note { position: absolute; left: 20px; bottom: 20px; display: flex; align-items: center; gap: 9px; padding: 11px 14px; border-radius: 14px; background: rgba(255, 255, 255, .95); box-shadow: 0 8px 22px rgba(0, 0, 0, .14); }
+    .visual-note img { position: static; width: 21px; height: 21px; border-radius: 6px; }
+    .visual-note strong { color: var(--ink); font-size: .85rem; }
+    .visual-note em { color: var(--ink-2); font-size: .74rem; font-style: normal; }
+
+    /* Wrapped card mock */
+    .wrapped-mock { display: grid; grid-template-rows: auto 1fr auto; gap: 13px; padding: 26px; border-radius: 22px; background: #0b0b0d; }
+    .wrapped-mock .wm-title { color: #f5f5f7; font-size: .78rem; font-weight: 700; letter-spacing: .16em; }
+    .wm-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .wm-stat { padding: 16px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 14px; background: rgba(255, 255, 255, .05); }
+    .wm-stat b { display: block; color: #fff; font-size: 1.6rem; font-weight: 600; letter-spacing: -.04em; }
+    .wm-stat span { color: #86868b; font-size: .68rem; font-weight: 600; letter-spacing: .09em; }
+    .wm-bars { display: flex; align-items: flex-end; gap: 5px; height: 54px; }
+    .wm-bars i { flex: 1; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, #2dccad, #1c8c7d); }
+
+    /* Privacy panel */
+    .assure { padding: 104px 22px; background: var(--ink); }
+    .assure-inner { width: min(820px, 100%); margin: 0 auto; text-align: center; }
+    .assure h2 { margin-bottom: 20px; color: #f5f5f7; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 600; line-height: 1.1; letter-spacing: -.06em; word-break: keep-all; }
+    .assure p { color: #a1a1a6; font-size: clamp(1rem, 1.5vw, 1.16rem); line-height: 1.65; word-break: keep-all; }
+    .assure p + p { margin-top: 14px; }
+    .assure-points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 44px; text-align: left; }
+    .assure-points div { padding: 20px; border-radius: 16px; background: #252527; }
+    .assure-points strong { display: block; margin-bottom: 6px; color: #f5f5f7; font-size: .96rem; }
+    .assure-points span { color: #a1a1a6; font-size: .84rem; line-height: 1.55; word-break: keep-all; }
+
+    /* Spec grid */
+    .specs { width: min(1120px, 100%); margin: 0 auto; padding: 104px 22px; }
+    .specs h2 { margin-bottom: 40px; color: var(--ink); font-size: clamp(1.9rem, 3.4vw, 2.7rem); font-weight: 600; letter-spacing: -.055em; }
+    .spec-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 34px; }
+    .spec-grid div { padding: 22px 0; border-top: 1px solid var(--hair); }
+    .spec-grid strong { display: block; margin-bottom: 5px; color: var(--ink); font-size: .98rem; font-weight: 600; }
+    .spec-grid span { color: var(--ink-2); font-size: .88rem; line-height: 1.5; word-break: keep-all; }
+
+    /* Closing */
+    .closing { padding: 118px 22px 128px; background: var(--panel); text-align: center; }
+    .closing h2 { margin-bottom: 15px; color: var(--ink); font-size: clamp(2.2rem, 4.6vw, 3.6rem); font-weight: 600; line-height: 1.08; letter-spacing: -.065em; word-break: keep-all; }
+    .closing p { margin-bottom: 26px; color: var(--ink-2); font-size: clamp(1.02rem, 1.6vw, 1.24rem); word-break: keep-all; }
+    .closing .cta-button { font-size: 1.15rem; }
+
+    .site-footer { padding: 34px 22px 46px; background: #fff; border-top: 1px solid var(--hair); color: var(--ink-3); font-size: .78rem; line-height: 1.7; text-align: center; }
+    .site-footer a { color: var(--ink-3); text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+
+    .hero .privacy-note { max-width: 460px; margin-top: 26px; margin-left: auto; margin-right: auto; }
+
+    @media (max-width: 780px) {
+      .nav-links { gap: 15px; }
+      .nav-links a:not(.nav-cta) { display: none; }
+      .highlights { padding: 66px 18px 20px; }
+      .highlight-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+      .showcase { padding: 0 18px; }
+      .showcase-panel { grid-template-columns: 1fr; gap: 28px; padding: 64px 0; }
+      .showcase-panel.flip .showcase-copy { order: 0; }
+      .showcase-visual { min-height: 260px; }
+      .assure { padding: 74px 18px; }
+      .assure-points { grid-template-columns: 1fr; margin-top: 32px; }
+      .specs { padding: 74px 18px; }
+      .spec-grid { grid-template-columns: 1fr; }
+      .closing { padding: 82px 18px 92px; }
+    }
   </style>
 </head>
 
@@ -287,7 +381,11 @@
 
   <header>
     <div class="logo"><img src="/Maplog_Favicon.png" alt="">Maplog</div>
-    <a class="header-link" href="/map.html">내 지도 열기</a>
+    <nav class="nav-links">
+      <a href="#features">기능</a>
+      <a href="#privacy">프라이버시</a>
+      <a class="nav-cta" href="/map.html">내 지도 열기</a>
+    </nav>
   </header>
 
   <section class="hero">
@@ -295,14 +393,14 @@
 
     <div class="hero-inner">
       <div class="hero-content">
-        <div class="eyebrow">나만의 개인 지도 앨범</div>
-        <h1>장소마다 남겨 둔<br><span>나만의 순간들</span></h1>
-        <p>사진, 메모, 방문 날짜를 지도 위에 기록하고<br>여행별로 모아 나만의 추억 지도를 완성하세요.</p>
+        <div class="eyebrow">Maplog</div>
+        <h1>다녀온 모든 곳이,<br><span>하나의 지도가 됩니다.</span></h1>
+        <p>사진, 메모, 별점, 방문 날짜.<span class="lede">흩어져 있던 그날의 조각을 지도 위에 모아 두세요.</span></p>
         <div class="hero-actions">
-          <a href="/map.html" class="cta-button">내 추억 지도 만들기</a>
-          <a href="#features" class="secondary-cta">어떻게 기록하나요?</a>
+          <a href="/map.html" class="cta-button">내 지도 만들기</a>
+          <a href="#features" class="secondary-cta">무엇을 할 수 있나요</a>
         </div>
-        <p class="privacy-note">내 기록은 나만 볼 수 있고, 원할 때만 링크로 공유할 수 있어요.</p>
+        <p class="privacy-note">지도는 로그인 없이 둘러볼 수 있어요. 내 기록은 기본적으로 나만 볼 수 있습니다.</p>
       </div>
 
       <div class="memory-map-preview" aria-label="Maplog 기록 예시">
@@ -312,7 +410,7 @@
         <div class="map-pin two"><img src="/pin.png" alt="저장한 장소"></div>
         <div class="map-pin three"><img src="/pin.png" alt="저장한 장소"></div>
         <div class="preview-card">
-          <img src="/image1.webp" alt="바닷가 카페 기록 예시">
+          <img src="/image1.webp" alt="바닷가 마을 기록 예시">
           <div>
             <strong>흰여울문화마을</strong>
             <p>바다를 보며 천천히 걷기 좋은 오후</p>
@@ -327,36 +425,149 @@
     </div>
   </section>
 
-  <section id="features" class="home-section">
-    <div class="section-heading">
-      <div class="eyebrow">MAPLOG의 기록 방식</div>
-      <h2>기억을 남기고, 나답게 정리하고, 함께 나누세요.</h2>
-      <p>복잡한 여행 계획 도구가 아니라, 지나간 순간을 다시 꺼내 볼 수 있는 가벼운 개인 지도입니다.</p>
+  <section class="highlights">
+    <div class="highlights-inner">
+      <h2>먼저, 핵심만.</h2>
+      <div class="highlight-grid">
+        <div class="highlight-item">
+          <strong>사진 여러 장</strong>
+          <span>한 장소에 그날 찍은 사진을 전부 담습니다.</span>
+        </div>
+        <div class="highlight-item">
+          <strong>태그 20종+</strong>
+          <span>맛집부터 숨은명소까지, 골라서 붙이거나 직접 씁니다.</span>
+        </div>
+        <div class="highlight-item">
+          <strong>지도 4가지</strong>
+          <span>기본, 다크, 라이트, 위성 중에 고르세요.</span>
+        </div>
+        <div class="highlight-item">
+          <strong>연말 결산 카드</strong>
+          <span>한 해의 이동을 이미지 한 장으로 저장합니다.</span>
+        </div>
+      </div>
     </div>
-    <div class="feature-grid">
-      <article class="feature-card">
-        <div class="feature-media"><img src="/image2.webp" alt="장소와 사진을 기록하는 예시"></div>
-        <h3>기록하기</h3>
-        <p>장소, 사진, 메모, 방문 날짜를 한 번에 남겨 그날의 분위기까지 보관하세요.</p>
-      </article>
-      <article class="feature-card">
-        <div class="feature-media"><img src="/image4.webp" alt="여행 컬렉션에 담긴 장소 예시"></div>
-        <h3>여행으로 묶기</h3>
-        <p>여행 컬렉션과 태그로 흩어진 장소를 취향과 순간에 맞게 정리하세요.</p>
-      </article>
-      <article class="feature-card">
-        <div class="feature-media"><img src="/image3.webp" alt="공유할 수 있는 장소 기록 예시"></div>
-        <h3>함께 보기</h3>
-        <p>필요한 순간에만 공유 링크와 이미지 카드로 나만의 장소 지도를 전하세요.</p>
-      </article>
+  </section>
+
+  <section id="features" class="showcase">
+
+    <div class="showcase-panel">
+      <div class="showcase-copy">
+        <p class="kicker">기록</p>
+        <h3>장소를 누르고,<br>그날을 적습니다.</h3>
+        <p>지도를 누르면 주소가 알아서 채워집니다. 남는 건 당신의 이야기뿐이에요. 사진을 여러 장 올리고 메모와 별점, 방문 날짜를 더하면 그날 하루가 지도 위에 그대로 남습니다.</p>
+        <div class="chip-row">
+          <span>사진 여러 장</span><span>메모</span><span>별점</span><span>방문 날짜</span><span>장소 검색</span>
+        </div>
+      </div>
+      <div class="showcase-visual">
+        <img src="/image2.webp" alt="장소와 사진을 기록하는 예시">
+        <div class="visual-note">
+          <img src="/pin.png" alt="">
+          <div>
+            <strong>오늘의 커피</strong><br>
+            <em>★★★★☆ · 2026. 4. 12.</em>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="showcase-panel flip">
+      <div class="showcase-copy">
+        <p class="kicker">정리</p>
+        <h3>여행별로 묶고,<br>취향별로 걸러냅니다.</h3>
+        <p>한 번의 여행을 컬렉션 하나로 묶고, 태그로 성격을 나눕니다. 핀 색깔에는 직접 이름을 붙일 수 있어요. 사이드바에서 컬렉션과 태그, 색상과 기간으로 원하는 기억만 곧바로 꺼내 보세요.</p>
+        <div class="chip-row">
+          <span>여행 컬렉션</span><span>태그 필터</span><span>색상 핀</span><span>기간 필터</span><span>이름 붙이는 핀</span>
+        </div>
+      </div>
+      <div class="showcase-visual">
+        <img src="/image4.webp" alt="여행 컬렉션으로 묶인 장소 예시">
+        <div class="visual-note">
+          <img src="/Maplog_Favicon.png" alt="">
+          <div>
+            <strong>2026 봄 부산 여행</strong><br>
+            <em>장소 12곳 · #맛집 #산책</em>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="showcase-panel">
+      <div class="showcase-copy">
+        <p class="kicker">되돌아보기</p>
+        <h3>1년의 이동을,<br>한 장으로.</h3>
+        <p>다녀온 장소 수와 나라 수, 이동 거리와 평균 별점. 월별로 어떻게 움직였는지, 어떤 곳을 가장 자주 찾았는지까지 한 장의 카드에 담깁니다. 그대로 내려받아 공유하세요.</p>
+        <div class="chip-row">
+          <span>방문 장소 수</span><span>이동 거리</span><span>평균 별점</span><span>월별 활동</span><span>이미지로 저장</span>
+        </div>
+      </div>
+      <div class="showcase-visual wrapped-mock">
+        <div class="wm-title">MY 2026 TRAVEL WRAPPED</div>
+        <div class="wm-stats">
+          <div class="wm-stat"><b>48</b><span>PLACES</span></div>
+          <div class="wm-stat"><b>5</b><span>COUNTRIES</span></div>
+          <div class="wm-stat"><b>2,847</b><span>KM</span></div>
+          <div class="wm-stat"><b>4.3★</b><span>AVERAGE</span></div>
+        </div>
+        <div class="wm-bars">
+          <i style="height:38%"></i><i style="height:60%"></i><i style="height:31%"></i><i style="height:82%"></i>
+          <i style="height:54%"></i><i style="height:96%"></i><i style="height:47%"></i><i style="height:69%"></i>
+          <i style="height:35%"></i><i style="height:77%"></i><i style="height:44%"></i><i style="height:88%"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="showcase-panel flip">
+      <div class="showcase-copy">
+        <p class="kicker">공유</p>
+        <h3>보여줄 만큼만,<br>보여줄 시간만.</h3>
+        <p>공유 링크는 24시간, 7일, 30일, 또는 기한 없이 만들 수 있습니다. 지금 걸어 둔 필터 그대로 보낼 수 있어서, 부산 여행만 따로 보여주는 것도 됩니다. 만들어 둔 링크는 언제든 확인하고 지울 수 있어요. 받은 사람은 마음에 든 장소를 자기 지도로 가져갈 수 있습니다.</p>
+        <div class="chip-row">
+          <span>24시간</span><span>7일</span><span>30일</span><span>기한 없음</span><span>필터째 공유</span><span>내 지도로 가져오기</span>
+        </div>
+      </div>
+      <div class="showcase-visual">
+        <img src="/image3.webp" alt="공유할 수 있는 장소 기록 예시">
+        <div class="visual-note">
+          <img src="/pin.png" alt="">
+          <div>
+            <strong>링크가 만들어졌어요</strong><br>
+            <em>7일 뒤 자동으로 닫힙니다</em>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <section id="privacy" class="assure">
+    <div class="assure-inner">
+      <h2>내 지도는,<br>기본이 비공개입니다.</h2>
+      <p>공유 링크를 직접 만들기 전까지 내 기록은 나만 볼 수 있습니다. 어디에도 자동으로 공개되지 않습니다.</p>
+      <p>그만두고 싶을 때도 간단합니다. 계정을 삭제하면 저장한 장소와 사진, 컬렉션과 태그, 게시글과 공유 링크까지 전부 함께 사라집니다.</p>
+      <div class="assure-points">
+        <div>
+          <strong>기본 비공개</strong>
+          <span>기록은 내 계정 안에만 남습니다.</span>
+        </div>
+        <div>
+          <strong>내가 정하는 공개</strong>
+          <span>링크의 범위도, 기한도 직접 고릅니다.</span>
+        </div>
+        <div>
+          <strong>흔적 없는 탈퇴</strong>
+          <span>계정을 지우면 남는 데이터가 없습니다.</span>
+        </div>
+      </div>
     </div>
   </section>
 
   <section class="home-section moment-section">
     <div class="moment-panel">
       <div class="moment-copy">
-        <h2>이런 순간을 기록해 보세요.</h2>
-        <p>여행지에서 우연히 만난 식당부터, 다시 가고 싶은 동네 카페, 특별한 하루의 사진까지. 작은 장소들이 모여 나만의 이야기가 됩니다.</p>
+        <h2>이런 순간을<br>기록해 보세요.</h2>
+        <p>여행지에서 우연히 들어간 식당, 다시 가고 싶은 동네 카페, 유난히 하늘이 좋았던 하루. 대단하지 않아도 괜찮습니다. 작은 장소들이 모여 나만의 이야기가 됩니다.</p>
       </div>
       <div class="moment-list">
         <span>🍜 여행지에서 만난 맛집</span>
@@ -367,7 +578,29 @@
     </div>
   </section>
 
-  <div class="privacy-bar"><strong>내 추억은 내가 정합니다.</strong> 기본적으로 내 지도는 비공개이며, 공유 링크는 필요할 때만 만들 수 있어요.</div>
+  <section class="specs">
+    <h2>그 밖의 것들.</h2>
+    <div class="spec-grid">
+      <div><strong>지도 스타일 4가지</strong><span>기본, 다크, 라이트, 위성 지도를 그때그때 바꿔 보세요.</span></div>
+      <div><strong>왼손 · 오른손 모드</strong><span>목록과 버튼을 잡기 편한 쪽으로 옮깁니다.</span></div>
+      <div><strong>한국어 · English</strong><span>화면 언어를 원하는 대로 바꿀 수 있어요.</span></div>
+      <div><strong>구글 계정 로그인</strong><span>이메일로 가입하거나 구글 계정으로 바로 시작합니다.</span></div>
+      <div><strong>현재 위치로 이동</strong><span>지금 있는 곳을 지도에서 한 번에 찾습니다.</span></div>
+      <div><strong>커뮤니티 보드</strong><span>후기와 팁, 궁금한 점을 다른 사람들과 나눠 보세요.</span></div>
+    </div>
+  </section>
+
+  <section class="closing">
+    <h2>오늘 다녀온 곳부터.</h2>
+    <p>기억은 흐려지지만, 지도 위에 찍어 둔 자리는 그대로 있습니다.</p>
+    <a href="/map.html" class="cta-button">내 지도 만들기</a>
+  </section>
+
+  <footer class="site-footer">
+    <div><strong>Maplog</strong> — 지도 위에 남기는 나만의 기록</div>
+    <div><a href="/map.html">내 지도</a> · <a href="/board.html">커뮤니티</a></div>
+  </footer>
+
 
   <script>
     // Leaflet 배경 초기화
