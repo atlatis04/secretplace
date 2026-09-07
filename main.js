@@ -3736,6 +3736,32 @@ if (cardModal) {
 
 // --- Rendering ----------------------------------------------------------
 
+// Never let one slow step hold the whole card hostage.
+function withTimeout(promise, ms, fallback) {
+    return Promise.race([
+        promise,
+        new Promise(resolve => setTimeout(() => resolve(fallback), ms))
+    ]);
+}
+
+// Moving the viewport starts a fresh round of tile requests, and the ones the
+// move aborted never settle - html-to-image waits on them forever. So wait for
+// the layer to report itself loaded before capturing anything.
+function waitForTiles(timeoutMs = 6000) {
+    return new Promise(resolve => {
+        if (!currentTileLayer) return resolve();
+        let done = false;
+        const finish = () => {
+            if (done) return;
+            done = true;
+            currentTileLayer.off('load', finish);
+            resolve();
+        };
+        currentTileLayer.on('load', finish);
+        setTimeout(finish, timeoutMs);
+    });
+}
+
 // Frames the selected places on the live map and captures it for the card.
 async function captureCardMap(places) {
     const mapElement = document.getElementById('map');
@@ -3746,6 +3772,7 @@ async function captureCardMap(places) {
     const previousCentre = map.getCenter();
     const previousZoom = map.getZoom();
 
+    const tilesReady = waitForTiles();
     if (places.length === 1) {
         map.setView([places[0].latitude, places[0].longitude], 15);
     } else if (places.length > 1) {
@@ -3754,14 +3781,17 @@ async function captureCardMap(places) {
 
     controls.forEach(c => (c.style.visibility = 'hidden'));
     try {
-        await new Promise(resolve => setTimeout(resolve, 1600));
-        return await htmlToImage.toPng(mapElement, {
+        await tilesReady;
+        // A short settle for the tiles that finished last to paint.
+        await new Promise(resolve => setTimeout(resolve, 400));
+        return await withTimeout(htmlToImage.toPng(mapElement, {
             pixelRatio: 1,
-            cacheBust: true,
             skipFonts: true,
             width: mapElement.offsetWidth,
-            height: mapElement.offsetHeight
-        });
+            height: mapElement.offsetHeight,
+            // Anything still mid-flight would stall the capture.
+            filter: node => !(node.tagName === 'IMG' && !node.complete)
+        }), 12000, '');
     } catch (err) {
         console.error('Map capture failed:', err);
         return '';
@@ -3802,7 +3832,7 @@ async function generateShareImage() {
         [places.length, 'PLACES'],
         [formatDistance(calculateTravelDistance(places)), 'KM'],
         [`${avg}★`, 'RATING'],
-        [countries.size || '—', 'COUNTRIES']
+        [countries.size || '—', countries.size === 1 ? 'COUNTRY' : 'COUNTRIES']
     ];
     document.getElementById('card-stats').innerHTML =
         stats.map(([value, label]) => `<div class="card-stat"><b>${value}</b><span>${label}</span></div>`).join('');
@@ -3856,13 +3886,15 @@ async function generateShareImage() {
     try {
         await document.fonts.ready;
         await new Promise(resolve => setTimeout(resolve, 900));
-        const dataUrl = await htmlToImage.toPng(canvas, {
+        const dataUrl = await withTimeout(htmlToImage.toPng(canvas, {
             pixelRatio: 2,
             width,
             height,
-            cacheBust: true,
-            skipFonts: true
-        });
+            skipFonts: true,
+            filter: node => !(node.tagName === 'IMG' && !node.complete)
+        }), 25000, '');
+
+        if (!dataUrl) throw new Error('capture timed out');
 
         const link = document.createElement('a');
         link.download = `Maplog_${period.replace(/[^\w.-]/g, '')}_${cardState.theme}.png`;
