@@ -1081,6 +1081,9 @@ function startPhotoRecord() {
     document.getElementById('place-lng').value = '';
     document.getElementById('place-address').value = '';
     document.getElementById('place-address-original').value = '';
+    // openModal pre-fills today. Clearing it lets the photo's own capture date
+    // win; applyPhotoContext puts today back if the photo has no date.
+    document.getElementById('visit-date').value = '';
     photoInput.click();
 }
 
@@ -1516,6 +1519,9 @@ async function applyPhotoContext(files) {
         addressInput.value = address;
         originalAddressInput.value = address;
         showToast(t('photo.exifNoLocation'));
+    }
+    if (photoFirstPending && !filledDate && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
     }
     photoFirstPending = false;
 
