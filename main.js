@@ -210,6 +210,9 @@ const translations = {
         'photo.totalLimit': (limit, current) => `총 ${limit}장까지 업로드 가능합니다. (현재: ${current}장)`,
         'photo.imageOnly': '이미지 파일만 업로드 가능합니다 (JPG, PNG, GIF, WebP)',
         'photo.sizeLimit': (name) => `파일 크기는 5MB 이하여야 합니다 (${name})`,
+        'card.generating': '카드를 만드는 중...',
+        'card.saved': '카드 이미지를 저장했어요',
+        'card.failed': '카드를 만들지 못했습니다',
         'photo.locating': '사진 위치 확인 중...',
         'photo.exifNoLocation': '사진에 위치 정보가 없어 지도 중심으로 설정했어요',
         'save.noLocation': '위치를 확인할 수 없습니다. 지도에서 장소를 선택해 주세요.',
@@ -441,6 +444,9 @@ const translations = {
         'photo.totalLimit': (limit, current) => `Maximum ${limit} photos total. (Current: ${current})`,
         'photo.imageOnly': 'Only image files allowed (JPG, PNG, GIF, WebP)',
         'photo.sizeLimit': (name) => `File size must be under 5MB (${name})`,
+        'card.generating': 'Building your card...',
+        'card.saved': 'Card image saved',
+        'card.failed': 'Could not build the card',
         'photo.locating': 'Looking up the photo location...',
         'photo.exifNoLocation': 'No location in the photo, so the map centre was used',
         'save.noLocation': 'No location found. Please pick the place on the map.',
@@ -3084,15 +3090,7 @@ if (mapSearchInput) {
     });
 
     // Share Buttons Event Listeners
-    const shareImageBtn = document.getElementById('share-image-btn');
     const shareLinkBtn = document.getElementById('share-link-btn');
-
-    if (shareImageBtn) {
-        shareImageBtn.onclick = (e) => {
-            e.stopPropagation();
-            generateShareImage();
-        };
-    }
 
     if (shareLinkBtn) {
         shareLinkBtn.onclick = (e) => {
@@ -3524,193 +3522,358 @@ function dominantVisitYear(places) {
 }
 
 // --- Cyberpunk Dashboard Share Image Logic ---
+// --- Share card ---------------------------------------------------------
+//
+// The card used to be a by-product of the sidebar: it silently rendered
+// whatever filter happened to be applied. It is now built from an explicit
+// selection so what lands in the image is what the user asked for.
+
+const CARD_MONTH_LABELS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+const cardState = {
+    range: 'all',
+    year: null,
+    monthYear: null,
+    month: null,
+    picked: new Set(),
+    theme: 'neon',
+    ratio: 'square'
+};
+
+function cardCandidates() {
+    return allPlaces.filter(p => Number.isFinite(p.latitude) && Number.isFinite(p.longitude));
+}
+
+// The places the current selection resolves to.
+function cardSelection() {
+    const places = cardCandidates();
+    switch (cardState.range) {
+        case 'year':
+            return places.filter(p => p.visit_date && new Date(p.visit_date).getFullYear() === Number(cardState.year));
+        case 'month':
+            return places.filter(p => {
+                if (!p.visit_date) return false;
+                const d = new Date(p.visit_date);
+                return d.getFullYear() === Number(cardState.monthYear) && d.getMonth() === Number(cardState.month);
+            });
+        case 'pick':
+            return places.filter(p => cardState.picked.has(p.id));
+        default:
+            return places;
+    }
+}
+
+// What the card calls the period it covers.
+function cardPeriodLabel(places) {
+    if (cardState.range === 'year') return String(cardState.year);
+    if (cardState.range === 'month') {
+        return `${cardState.monthYear}.${String(Number(cardState.month) + 1).padStart(2, '0')}`;
+    }
+    if (cardState.range === 'pick') return `${places.length} PLACES`;
+    const years = [...new Set(places.map(p => p.visit_date && new Date(p.visit_date).getFullYear()).filter(Boolean))].sort();
+    if (!years.length) return String(new Date().getFullYear());
+    return years.length === 1 ? String(years[0]) : `${years[0]}–${years[years.length - 1]}`;
+}
+
+function cardTopTags(places, limit) {
+    const tally = new Map();
+    places.forEach(place => (place.tags || []).forEach(tag => {
+        if (tag?.name) tally.set(tag.name, (tally.get(tag.name) || 0) + 1);
+    }));
+    return [...tally.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([name]) => name);
+}
+
+// --- Builder dialog -----------------------------------------------------
+
+const cardModal = document.getElementById('card-modal');
+
+function openCardModal() {
+    if (!currentUser) {
+        showToast(t('ui.loginRequired'));
+        authOverlay?.classList.remove('hidden');
+        return;
+    }
+    if (!cardCandidates().length) {
+        showToast(t('ui.noPlacesToShare') || '공유할 장소가 없습니다.');
+        return;
+    }
+    populateCardPeriodOptions();
+    renderCardPickList();
+    updateCardSummary();
+    cardModal.classList.remove('hidden');
+    sidebar?.classList.add('hidden');
+}
+
+function populateCardPeriodOptions() {
+    const years = [...new Set(
+        cardCandidates().map(p => p.visit_date && new Date(p.visit_date).getFullYear()).filter(Boolean)
+    )].sort((a, b) => b - a);
+
+    const fill = (el, values, labelOf) => {
+        if (!el) return;
+        el.innerHTML = values.map(v => `<option value="${v}">${labelOf(v)}</option>`).join('');
+    };
+
+    fill(document.getElementById('card-year'), years, y => `${y}년`);
+    fill(document.getElementById('card-month-year'), years, y => `${y}년`);
+    fill(document.getElementById('card-month'), [...Array(12).keys()], m => `${m + 1}월`);
+
+    if (cardState.year === null) cardState.year = years[0] ?? new Date().getFullYear();
+    if (cardState.monthYear === null) cardState.monthYear = years[0] ?? new Date().getFullYear();
+    if (cardState.month === null) cardState.month = new Date().getMonth();
+
+    const yearEl = document.getElementById('card-year');
+    const monthYearEl = document.getElementById('card-month-year');
+    const monthEl = document.getElementById('card-month');
+    if (yearEl) yearEl.value = cardState.year;
+    if (monthYearEl) monthYearEl.value = cardState.monthYear;
+    if (monthEl) monthEl.value = cardState.month;
+}
+
+function renderCardPickList(query = '') {
+    const list = document.getElementById('card-pick-list');
+    if (!list) return;
+    const needle = query.trim().toLowerCase();
+    const places = cardCandidates()
+        .filter(p => !needle || (p.name || '').toLowerCase().includes(needle))
+        .sort((a, b) => (b.visit_date || '').localeCompare(a.visit_date || ''));
+
+    if (!places.length) {
+        list.innerHTML = '<label style="color:#64748b;cursor:default">검색 결과가 없습니다</label>';
+        return;
+    }
+
+    list.innerHTML = places.map(p => `
+        <label>
+            <input type="checkbox" value="${p.id}" ${cardState.picked.has(p.id) ? 'checked' : ''}>
+            <span class="pick-name">${escapeHtml(p.name)}</span>
+            <span class="pick-date">${p.visit_date || ''}</span>
+        </label>`).join('');
+}
+
+function updateCardSummary() {
+    const box = document.getElementById('card-summary');
+    const button = document.getElementById('card-generate-btn');
+    if (!box) return;
+
+    const places = cardSelection();
+    const withPhotos = places.filter(p => p.photo_urls?.length).length;
+    const empty = places.length === 0;
+
+    box.classList.toggle('empty', empty);
+    box.innerHTML = empty
+        ? '선택한 조건에 해당하는 장소가 없습니다.'
+        : `<strong>${places.length}곳</strong>이 담깁니다 · 사진 ${withPhotos}곳 · ${cardPeriodLabel(places)}`;
+    if (button) button.disabled = empty;
+}
+
+if (cardModal) {
+    document.getElementById('card-btn')?.addEventListener('click', openCardModal);
+    document.getElementById('close-card-modal')?.addEventListener('click', () => cardModal.classList.add('hidden'));
+    cardModal.addEventListener('click', e => { if (e.target === cardModal) cardModal.classList.add('hidden'); });
+
+    document.getElementById('card-range')?.addEventListener('click', e => {
+        const btn = e.target.closest('.seg-btn');
+        if (!btn) return;
+        cardState.range = btn.dataset.range;
+        document.querySelectorAll('#card-range .seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+        document.getElementById('card-year-row')?.classList.toggle('hidden', cardState.range !== 'year');
+        document.getElementById('card-month-row')?.classList.toggle('hidden', cardState.range !== 'month');
+        document.getElementById('card-pick-row')?.classList.toggle('hidden', cardState.range !== 'pick');
+        updateCardSummary();
+    });
+
+    document.getElementById('card-theme')?.addEventListener('click', e => {
+        const btn = e.target.closest('.theme-btn');
+        if (!btn) return;
+        cardState.theme = btn.dataset.theme;
+        document.querySelectorAll('#card-theme .theme-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+
+    document.getElementById('card-ratio')?.addEventListener('click', e => {
+        const btn = e.target.closest('.seg-btn');
+        if (!btn) return;
+        cardState.ratio = btn.dataset.ratio;
+        document.querySelectorAll('#card-ratio .seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+
+    ['card-year', 'card-month-year', 'card-month'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', e => {
+            if (id === 'card-year') cardState.year = e.target.value;
+            if (id === 'card-month-year') cardState.monthYear = e.target.value;
+            if (id === 'card-month') cardState.month = e.target.value;
+            updateCardSummary();
+        });
+    });
+
+    document.getElementById('card-pick-search')?.addEventListener('input', e => renderCardPickList(e.target.value));
+
+    document.getElementById('card-pick-list')?.addEventListener('change', e => {
+        if (e.target.type !== 'checkbox') return;
+        if (e.target.checked) cardState.picked.add(e.target.value);
+        else cardState.picked.delete(e.target.value);
+        updateCardSummary();
+    });
+
+    document.getElementById('card-pick-all')?.addEventListener('click', () => {
+        document.querySelectorAll('#card-pick-list input[type=checkbox]').forEach(cb => {
+            cb.checked = true;
+            cardState.picked.add(cb.value);
+        });
+        updateCardSummary();
+    });
+
+    document.getElementById('card-pick-none')?.addEventListener('click', () => {
+        document.querySelectorAll('#card-pick-list input[type=checkbox]').forEach(cb => {
+            cb.checked = false;
+            cardState.picked.delete(cb.value);
+        });
+        updateCardSummary();
+    });
+
+    document.getElementById('card-generate-btn')?.addEventListener('click', generateShareImage);
+}
+
+// --- Rendering ----------------------------------------------------------
+
+// Frames the selected places on the live map and captures it for the card.
+async function captureCardMap(places) {
+    const mapElement = document.getElementById('map');
+    const controls = document.querySelectorAll(
+        '.leaflet-control-container, .search-container, .map-controls-repositioned, .sidebar, #first-place-empty-state'
+    );
+
+    const previousCentre = map.getCenter();
+    const previousZoom = map.getZoom();
+
+    if (places.length === 1) {
+        map.setView([places[0].latitude, places[0].longitude], 15);
+    } else if (places.length > 1) {
+        map.fitBounds(L.latLngBounds(places.map(p => [p.latitude, p.longitude])), { padding: [70, 70] });
+    }
+
+    controls.forEach(c => (c.style.visibility = 'hidden'));
+    try {
+        await new Promise(resolve => setTimeout(resolve, 1600));
+        return await htmlToImage.toPng(mapElement, {
+            pixelRatio: 1,
+            cacheBust: true,
+            skipFonts: true,
+            width: mapElement.offsetWidth,
+            height: mapElement.offsetHeight
+        });
+    } catch (err) {
+        console.error('Map capture failed:', err);
+        return '';
+    } finally {
+        controls.forEach(c => (c.style.visibility = 'visible'));
+        map.setView(previousCentre, previousZoom);
+    }
+}
+
 async function generateShareImage() {
     const template = document.getElementById('share-card-template');
     if (!template) return;
 
-    // Use currentFilteredPlaces if available, otherwise fallback to allPlaces
-    const targetPlaces = currentFilteredPlaces.length > 0 ? currentFilteredPlaces : allPlaces;
-    if (targetPlaces.length === 0) {
+    const places = cardSelection();
+    if (!places.length) {
         showToast(t('ui.noPlacesToShare') || '공유할 장소가 없습니다.');
         return;
     }
 
-    // Every stat below is computed over the whole selection. Slicing to the
-    // first few places here used to cap the headline count and skew the rest.
+    cardModal?.classList.add('hidden');
+    showToast(t('card.generating'));
 
-    const uniqueCountries = new Set(
-        targetPlaces.map(p => countryOfAddress(p.address)).filter(Boolean)
-    ).size;
+    const canvas = template.querySelector('.card-canvas');
+    canvas.dataset.theme = cardState.theme;
+    canvas.dataset.ratio = cardState.ratio;
 
-    const ratedPlaces = targetPlaces.filter(p => p.rating > 0);
-    const avgRating = ratedPlaces.length
-        ? (ratedPlaces.reduce((sum, p) => sum + p.rating, 0) / ratedPlaces.length).toFixed(1)
-        : '0.0';
+    // Head
+    const period = cardPeriodLabel(places);
+    document.getElementById('card-title').textContent = period;
+    const countries = new Set(places.map(p => countryOfAddress(p.address)).filter(Boolean));
+    document.getElementById('card-sub').textContent =
+        `${places.length} places · ${[...countries].join(' · ') || 'On the map'}`;
 
-    // Update stat cards
-    document.querySelector('#stat-places .stat-number').textContent = targetPlaces.length;
-    document.querySelector('#stat-countries .stat-number').textContent = uniqueCountries;
-    document.querySelector('#stat-rating .stat-number').textContent = `${avgRating}★`;
-    document.querySelector('#stat-distance .stat-number').textContent =
-        formatDistance(calculateTravelDistance(targetPlaces));
+    // Stats
+    const rated = places.filter(p => p.rating > 0);
+    const avg = rated.length ? (rated.reduce((sum, p) => sum + p.rating, 0) / rated.length).toFixed(1) : '0.0';
+    const stats = [
+        [places.length, 'PLACES'],
+        [formatDistance(calculateTravelDistance(places)), 'KM'],
+        [`${avg}★`, 'RATING'],
+        [countries.size || '—', 'COUNTRIES']
+    ];
+    document.getElementById('card-stats').innerHTML =
+        stats.map(([value, label]) => `<div class="card-stat"><b>${value}</b><span>${label}</span></div>`).join('');
 
-    // Title reflects the period the places actually fall in.
-    const cardYear = dominantVisitYear(targetPlaces);
-    const cardTitle = document.getElementById('cyberpunk-title');
-    if (cardTitle) cardTitle.textContent = `MY ${cardYear} TRAVEL WRAPPED`;
-
-    // Progress against the user's own yearly goal.
-    const goalPlaces = Math.max(1, Number(userSettings.yearGoal) || DEFAULT_YEAR_GOAL);
-    const progressPercent = Math.min(100, Math.round((targetPlaces.length / goalPlaces) * 100));
-    document.querySelector('.progress-text').textContent = `${progressPercent}%`;
-    const goalLabel = document.querySelector('#goal-progress .progress-label');
-    if (goalLabel) goalLabel.textContent = `YEAR GOAL ${targetPlaces.length}/${goalPlaces}`;
-
-    // Update progress circle
-    const progressCircle = document.getElementById('progress-circle');
-    const circumference = 2 * Math.PI * 50;
-    const offset = circumference - (progressPercent / 100) * circumference;
-    progressCircle.style.strokeDashoffset = offset;
-
-    // Best-rated places carry the photo grid.
-    const photosGrid = document.getElementById('top-photos');
-    photosGrid.innerHTML = '';
-    targetPlaces
-        .filter(place => place.photo_urls && place.photo_urls.length > 0)
+    // Photos: best-rated first, more of them on the taller canvas.
+    const photoLimit = cardState.ratio === 'story' ? 6 : 4;
+    document.getElementById('card-photos').innerHTML = places
+        .filter(p => p.photo_urls?.length)
         .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        .slice(0, 4)
-        .forEach(place => {
-            const img = document.createElement('img');
-            img.src = place.photo_urls[0];
-            img.crossOrigin = 'anonymous';
-            photosGrid.appendChild(img);
+        .slice(0, photoLimit)
+        .map(p => `<img src="${p.photo_urls[0]}" crossorigin="anonymous">`)
+        .join('');
+
+    // Tags
+    document.getElementById('card-tags').innerHTML =
+        cardTopTags(places, cardState.ratio === 'story' ? 6 : 4).map(name => `<span># ${escapeHtml(name)}</span>`).join('');
+
+    // Month bars, hidden when the card is already one month.
+    const monthsWrap = document.querySelector('.card-months');
+    if (cardState.range === 'month') {
+        monthsWrap.style.display = 'none';
+    } else {
+        monthsWrap.style.display = '';
+        const counts = new Array(12).fill(0);
+        places.forEach(p => {
+            if (!p.visit_date) return;
+            const m = new Date(p.visit_date).getMonth();
+            if (!Number.isNaN(m)) counts[m]++;
         });
-
-    document.querySelector('.mv-value').textContent = mostVisitedLabel(targetPlaces);
-
-    // Create month timeline
-    const monthTimeline = document.getElementById('month-timeline');
-    monthTimeline.innerHTML = '';
-    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-
-    // Count visits per month
-    const monthCounts = new Array(12).fill(0);
-    targetPlaces.forEach(place => {
-        if (place.visit_date) {
-            const month = new Date(place.visit_date).getMonth();
-            if (!Number.isNaN(month)) monthCounts[month]++;
-        }
-    });
-
-    const maxCount = Math.max(...monthCounts, 1);
-    months.forEach((month, i) => {
-        const bar = document.createElement('div');
-        bar.className = 'month-bar';
-        const height = (monthCounts[i] / maxCount) * 100;
-        bar.style.height = `${Math.max(height, 5)}%`;
-        bar.setAttribute('data-month', month);
-        monthTimeline.appendChild(bar);
-    });
-
-    // Capture map with iOS Safari optimizations
-    const mapElement = document.getElementById('map');
-    const controls = document.querySelectorAll('.leaflet-control-container, .search-container, .map-controls-repositioned, .sidebar');
-
-    controls.forEach(c => c.style.visibility = 'hidden');
-
-    let mapDataUrl = '';
-    try {
-        // Wait longer for tiles to fully load (especially important for iOS)
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        mapDataUrl = await htmlToImage.toPng(mapElement, {
-            quality: 0.95,
-            pixelRatio: 1,
-            cacheBust: true,
-            skipFonts: true,
-            // iOS-specific optimizations
-            width: mapElement.offsetWidth,
-            height: mapElement.offsetHeight,
-            style: {
-                transform: 'none',
-                webkitTransform: 'none'
-            }
-        });
-    } catch (err) {
-        console.error('Map capture failed:', err);
-
-        // Fallback: Try alternative method for iOS
-        try {
-            console.log('Trying alternative map capture method...');
-            const leafletPane = mapElement.querySelector('.leaflet-map-pane');
-            if (leafletPane) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                mapDataUrl = await htmlToImage.toPng(mapElement, {
-                    quality: 0.9,
-                    pixelRatio: 1,
-                    cacheBust: true,
-                    skipFonts: true,
-                    backgroundColor: '#1a1a2e'
-                });
-            }
-        } catch (fallbackErr) {
-            console.error('Alternative map capture also failed:', fallbackErr);
-            showToast('지도 캡처 실패. 잠시 후 다시 시도해주세요.');
-        }
-    } finally {
-        controls.forEach(c => c.style.visibility = 'visible');
+        const max = Math.max(...counts, 1);
+        document.getElementById('card-months').innerHTML =
+            counts.map(c => `<i style="height:${Math.max((c / max) * 100, 3)}%"></i>`).join('');
     }
 
-    // Insert map into template
-    const mapContainer = document.getElementById('cyberpunk-map-container');
-    mapContainer.innerHTML = '';
-    if (mapDataUrl) {
-        const mapImg = document.createElement('img');
-        mapImg.src = mapDataUrl;
-        mapImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; filter: brightness(0.7) saturate(1.2);';
-        mapContainer.appendChild(mapImg);
-    }
+    document.getElementById('card-foot-left').textContent = 'maplog.space';
+    document.getElementById('card-foot-right').textContent = CARD_MONTH_LABELS[new Date().getMonth()] + ' ' + new Date().getFullYear();
 
-    // Setup template visibility
+    // Map
+    const mapDataUrl = await captureCardMap(places);
+    const slot = document.getElementById('card-map-slot');
+    slot.innerHTML = mapDataUrl ? `<img src="${mapDataUrl}">` : '';
+
+    // Capture
+    const width = 1080;
+    const height = cardState.ratio === 'story' ? 1920 : 1080;
+    template.style.cssText = `position: fixed; top: 0; left: 0; z-index: 999999; visibility: visible; opacity: 1;`;
     const oldScrollX = window.scrollX;
     const oldScrollY = window.scrollY;
     window.scrollTo(0, 0);
 
-    template.style.cssText = `
-        display: flex !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 1080px !important;
-        height: 1080px !important;
-        z-index: 999999 !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    `;
-
-    // Wait for everything to render
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Capture the cyberpunk dashboard
     try {
-        console.log('Generating cyberpunk dashboard image...');
-        const finalDataUrl = await htmlToImage.toPng(template, {
+        await document.fonts.ready;
+        await new Promise(resolve => setTimeout(resolve, 900));
+        const dataUrl = await htmlToImage.toPng(canvas, {
             pixelRatio: 2,
-            width: 1080,
-            height: 1080,
-            cacheBust: true
+            width,
+            height,
+            cacheBust: true,
+            skipFonts: true
         });
 
         const link = document.createElement('a');
-        link.download = `MapNote_Wrapped_${new Date().getTime()}.png`;
-        link.href = finalDataUrl;
+        link.download = `Maplog_${period.replace(/[^\w.-]/g, '')}_${cardState.theme}.png`;
+        link.href = dataUrl;
         link.click();
-        showToast('Travel Wrapped image saved!');
+        showToast(t('card.saved'));
     } catch (err) {
-        console.error('Dashboard capture failed:', err);
-        showToast('Failed to generate image: ' + err.message);
+        console.error('Card capture failed:', err);
+        showToast(t('card.failed'));
     } finally {
-        template.style.display = 'none';
+        template.style.cssText = 'position: fixed; top: -20000px; left: -20000px; z-index: -1000;';
         window.scrollTo(oldScrollX, oldScrollY);
     }
 }

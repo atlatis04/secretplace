@@ -72,6 +72,9 @@
       <button id="photo-record-btn" class="glass-button square" title="사진으로 기록">
         <span class="icon">📸</span>
       </button>
+      <button id="card-btn" class="glass-button square" title="카드 만들기">
+        <span class="icon">🖼️</span>
+      </button>
       <button id="pin-settings-btn" class="glass-button square" title="Pin Settings">
         <span class="icon">📍</span>
       </button>
@@ -91,7 +94,6 @@
       <div class="sidebar-header">
         <h2>Place List</h2>
         <div class="share-actions">
-          <button id="share-image-btn" class="icon-btn" title="이미지로 저장">🖼️</button>
           <button id="share-link-btn" class="icon-btn" title="링크 공유">🔗</button>
         </div>
         <button id="close-sidebar" class="close-btn">&times;</button>
@@ -440,6 +442,79 @@
       <span class="icon">📍</span>
     </button>
 
+
+    <!-- Card builder -->
+    <div id="card-modal" class="modal-overlay hidden" style="z-index: 4000;">
+      <div class="modal card-modal">
+        <div class="modal-header">
+          <h2>카드 만들기</h2>
+          <button id="close-card-modal" class="close-btn">&times;</button>
+        </div>
+
+        <div class="card-builder">
+          <div class="builder-group">
+            <label class="builder-label">무엇을 담을까요</label>
+            <div class="segmented" id="card-range">
+              <button type="button" class="seg-btn active" data-range="all">전체</button>
+              <button type="button" class="seg-btn" data-range="year">연도</button>
+              <button type="button" class="seg-btn" data-range="month">월</button>
+              <button type="button" class="seg-btn" data-range="pick">직접 고르기</button>
+            </div>
+
+            <div id="card-year-row" class="builder-row hidden">
+              <select id="card-year"></select>
+            </div>
+
+            <div id="card-month-row" class="builder-row hidden">
+              <select id="card-month-year"></select>
+              <select id="card-month"></select>
+            </div>
+
+            <div id="card-pick-row" class="builder-row hidden">
+              <input type="text" id="card-pick-search" placeholder="장소 이름으로 찾기">
+              <div id="card-pick-list" class="card-pick-list"></div>
+              <div class="pick-actions">
+                <button type="button" id="card-pick-all" class="tag-text-btn">전체 선택</button>
+                <button type="button" id="card-pick-none" class="tag-text-btn">전체 해제</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="builder-group">
+            <label class="builder-label">스타일</label>
+            <div class="theme-grid" id="card-theme">
+              <button type="button" class="theme-btn active" data-theme="neon">
+                <span class="theme-swatch theme-swatch-neon"></span>
+                <span>네온</span>
+              </button>
+              <button type="button" class="theme-btn" data-theme="mono">
+                <span class="theme-swatch theme-swatch-mono"></span>
+                <span>모노</span>
+              </button>
+              <button type="button" class="theme-btn" data-theme="film">
+                <span class="theme-swatch theme-swatch-film"></span>
+                <span>필름</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="builder-group">
+            <label class="builder-label">크기</label>
+            <div class="segmented" id="card-ratio">
+              <button type="button" class="seg-btn active" data-ratio="square">정사각형 1:1</button>
+              <button type="button" class="seg-btn" data-ratio="story">스토리 9:16</button>
+            </div>
+          </div>
+
+          <div id="card-summary" class="card-summary" aria-live="polite"></div>
+
+          <div class="modal-footer">
+            <button type="button" id="card-generate-btn" class="primary-btn">이미지 만들기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Lightbox Modal -->
     <div id="lightbox" class="modal-overlay hidden" style="z-index: 3001;">
       <div class="lightbox-content">
@@ -613,71 +688,30 @@
 
     <!-- Cyberpunk Share Card Template (for image generation) -->
     <div id="share-card-template">
-      <div class="share-card-content cyberpunk-style">
-        <header class="cyberpunk-header">
-          <h1 id="cyberpunk-title">MY 2026 TRAVEL WRAPPED</h1>
+      <div class="card-canvas" data-theme="neon" data-ratio="square">
+        <div class="card-grain" aria-hidden="true"></div>
+
+        <header class="card-head">
+          <div class="card-kicker">MAPLOG</div>
+          <h1 class="card-title" id="card-title">2026</h1>
+          <div class="card-sub" id="card-sub"></div>
         </header>
 
-        <div class="cyberpunk-main">
-          <!-- Left Stats Column -->
-          <div class="cyberpunk-left">
-            <div id="stat-places" class="stat-card">
-              <div class="stat-number">8</div>
-              <div class="stat-label">PLACES VISITED</div>
-            </div>
-            <div id="stat-countries" class="stat-card">
-              <div class="stat-number">5</div>
-              <div class="stat-label">COUNTRIES</div>
-            </div>
-            <div id="stat-distance" class="stat-card">
-              <div class="stat-number">2,847</div>
-              <div class="stat-label">KM TRAVELED</div>
-            </div>
-            <div id="stat-rating" class="stat-card">
-              <div class="stat-number">4.3★</div>
-              <div class="stat-label">AVERAGE</div>
-            </div>
-          </div>
+        <div class="card-map" id="card-map-slot"></div>
 
-          <!-- Center Map -->
-          <div class="cyberpunk-center">
-            <div id="cyberpunk-map-container" class="map-container">
-              <!-- Map will be inserted here -->
-            </div>
-          </div>
+        <div class="card-stats" id="card-stats"></div>
 
-          <!-- Right Info Column -->
-          <div class="cyberpunk-right">
-            <div id="goal-progress" class="progress-card">
-              <div class="progress-label">YEAR GOAL</div>
-              <div class="progress-ring">
-                <svg width="120" height="120">
-                  <circle cx="60" cy="60" r="50" class="progress-bg"></circle>
-                  <circle cx="60" cy="60" r="50" class="progress-bar" id="progress-circle"></circle>
-                </svg>
-                <div class="progress-text">80%</div>
-              </div>
-            </div>
-            <div id="top-photos" class="photos-grid">
-              <!-- Top 4 photos will be inserted here -->
-            </div>
-            <div id="most-visited" class="most-visited-card">
-              <div class="mv-label">MOST VISITED</div>
-              <div class="mv-value">Cafes</div>
-            </div>
-          </div>
+        <div class="card-photos" id="card-photos"></div>
+
+        <div class="card-tagline" id="card-tags"></div>
+
+        <div class="card-months">
+          <div class="card-months-bars" id="card-months"></div>
         </div>
 
-        <!-- Bottom Timeline -->
-        <div class="cyberpunk-timeline">
-          <div id="month-timeline" class="month-bars">
-            <!-- Month activity bars will be inserted here -->
-          </div>
-        </div>
-
-        <footer class="cyberpunk-footer">
-          <span class="footer-icon">📍</span>
-          <span class="footer-text">MAPNOTE ANALYTICS | YEAR IN REVIEW</span>
+        <footer class="card-foot">
+          <span id="card-foot-left">maplog.space</span>
+          <span id="card-foot-right"></span>
         </footer>
       </div>
     </div>
