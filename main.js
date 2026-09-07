@@ -1127,8 +1127,8 @@ function renderFilteredList(placesToRender) {
 
         if (addressParts.length >= 2) {
             // Address has comma - last part is country
-            country = addressParts[addressParts.length - 1].trim();
-            city = addressParts[0].trim().split(' ')[0];
+            country = canonicalPlaceName(addressParts[addressParts.length - 1]);
+            city = canonicalPlaceName(addressParts[0].trim().split(' ')[0]);
         } else {
             // No comma in address - use default country message (in English, will be translated for display)
             country = 'No country info';
@@ -1369,178 +1369,7 @@ function translateAddress(address) {
     if (lang === 'en') return address; // No translation needed for English
 
     // Translation map for common country and city names
-    const translations = {
-        // Countries
-        'South Korea': '대한민국',
-        'Korea': '대한민국',
-        'Japan': '일본',
-        'China': '중국',
-        'United States': '미국',
-        'United Kingdom': '영국',
-        'France': '프랑스',
-        'Germany': '독일',
-        'Italy': '이탈리아',
-        'Spain': '스페인',
-        'Canada': '캐나다',
-        'Australia': '호주',
-        'Thailand': '태국',
-        'Vietnam': '베트남',
-        'Singapore': '싱가포르',
-        'Malaysia': '말레이시아',
-        'Indonesia': '인도네시아',
-        'Philippines': '필리핀',
-        'Taiwan': '대만',
-        'Hong Kong': '홍콩',
-        'No country info': '국가 정보 없음',
-        'No location info': '지명 정보 없음',
-        'No address information': '주소 정보 없음',
-        'Other': '기타',
-
-        // Korean cities (English to Korean)
-        'Seoul': '서울',
-        'Busan': '부산',
-        'Incheon': '인천',
-        'Daegu': '대구',
-        'Daejeon': '대전',
-        'Gwangju': '광주',
-        'Ulsan': '울산',
-        'Sejong': '세종',
-
-        // Provinces
-        'Gyeonggi-do': '경기도',
-        'Gangwon-do': '강원도',
-        'Chungcheongbuk-do': '충청북도',
-        'Chungcheongnam-do': '충청남도',
-        'Jeollabuk-do': '전라북도',
-        'Jeollanam-do': '전라남도',
-        'Gyeongsangbuk-do': '경상북도',
-        'Gyeongsangnam-do': '경상남도',
-        'Jeju-do': '제주도',
-
-        // Gyeonggi-do cities
-        'Suwon': '수원',
-        'Seongnam': '성남',
-        'Goyang': '고양',
-        'Yongin': '용인',
-        'Bucheon': '부천',
-        'Ansan': '안산',
-        'Anyang': '안양',
-        'Namyangju': '남양주',
-        'Hwaseong': '화성',
-        'Pyeongtaek': '평택',
-        'Uijeongbu': '의정부',
-        'Siheung': '시흥',
-        'Paju': '파주',
-        'Gwangmyeong': '광명',
-        'Gimpo': '김포',
-        'Gunpo': '군포',
-        'Hanam': '하남',
-        'Osan': '오산',
-        'Icheon': '이천',
-        'Yangju': '양주',
-        'Anseong': '안성',
-        'Guri': '구리',
-        'Pocheon': '포천',
-        'Uiwang': '의왕',
-        'Gwangju': '광주',
-        'Yeoju': '여주',
-        'Dongducheon': '동두천',
-        'Gwacheon': '과천',
-
-        // Gangwon-do cities
-        'Chuncheon': '춘천',
-        'Wonju': '원주',
-        'Gangneung': '강릉',
-        'Donghae': '동해',
-        'Taebaek': '태백',
-        'Sokcho': '속초',
-        'Samcheok': '삼척',
-
-        // Chungcheong region cities
-        'Cheongju': '청주',
-        'Chungju': '충주',
-        'Jecheon': '제천',
-        'Cheonan': '천안',
-        'Gongju': '공주',
-        'Boryeong': '보령',
-        'Asan': '아산',
-        'Seosan': '서산',
-        'Nonsan': '논산',
-        'Gyeryong': '계룡',
-        'Dangjin': '당진',
-
-        // Jeolla region cities
-        'Jeonju': '전주',
-        'Gunsan': '군산',
-        'Iksan': '익산',
-        'Jeongeup': '정읍',
-        'Namwon': '남원',
-        'Gimje': '김제',
-        'Mokpo': '목포',
-        'Yeosu': '여수',
-        'Suncheon': '순천',
-        'Naju': '나주',
-        'Gwangyang': '광양',
-
-        // Gyeongsang region cities
-        'Pohang': '포항',
-        'Gyeongju': '경주',
-        'Gimcheon': '김천',
-        'Andong': '안동',
-        'Gumi': '구미',
-        'Yeongju': '영주',
-        'Yeongcheon': '영천',
-        'Sangju': '상주',
-        'Mungyeong': '문경',
-        'Gyeongsan': '경산',
-        'Changwon': '창원',
-        'Jinju': '진주',
-        'Tongyeong': '통영',
-        'Sacheon': '사천',
-        'Gimhae': '김해',
-        'Miryang': '밀양',
-        'Geoje': '거제',
-        'Yangsan': '양산',
-
-        // Jeju
-        'Jeju': '제주',
-        'Seogwipo': '서귀포',
-
-        // Seoul districts (구)
-        'Jongno-gu': '종로구',
-        'Jung-gu': '중구',
-        'Yongsan-gu': '용산구',
-        'Seongdong-gu': '성동구',
-        'Gwangjin-gu': '광진구',
-        'Dongdaemun-gu': '동대문구',
-        'Jungnang-gu': '중랑구',
-        'Seongbuk-gu': '성북구',
-        'Gangbuk-gu': '강북구',
-        'Dobong-gu': '도봉구',
-        'Nowon-gu': '노원구',
-        'Eunpyeong-gu': '은평구',
-        'Seodaemun-gu': '서대문구',
-        'Mapo-gu': '마포구',
-        'Yangcheon-gu': '양천구',
-        'Gangseo-gu': '강서구',
-        'Guro-gu': '구로구',
-        'Geumcheon-gu': '금천구',
-        'Yeongdeungpo-gu': '영등포구',
-        'Dongjak-gu': '동작구',
-        'Gwanak-gu': '관악구',
-        'Seocho-gu': '서초구',
-        'Gangnam-gu': '강남구',
-        'Songpa-gu': '송파구',
-        'Gangdong-gu': '강동구',
-
-        // Common district suffixes
-        '-gu': '구',
-        '-si': '시',
-        '-gun': '군',
-        '-dong': '동',
-        '-ro': '로',
-        '-gil': '길',
-    };
+    const translations = ADDRESS_TRANSLATIONS;
 
     let translatedAddress = address;
 
@@ -1833,15 +1662,16 @@ placeForm.onsubmit = async (e) => {
         rating,
         color,
         photo_urls: uploadedPhotos,
-        is_public: true,
         user_id: currentUser?.id || null
     };
 
     let result;
     if (id) {
+        // is_public belongs to the sidebar toggle. Writing it here republished
+        // every place the user had switched to private, on every edit.
         result = await supabase.from('places').update(placeData).eq('id', id).select().single();
     } else {
-        result = await supabase.from('places').insert([placeData]).select().single();
+        result = await supabase.from('places').insert([{ ...placeData, is_public: true }]).select().single();
     }
 
     if (result.error) {
@@ -3401,6 +3231,223 @@ window.addFromSearch = async (name, address, lat, lon) => {
 };
 
 
+const ADDRESS_TRANSLATIONS = {
+    // Countries
+    'South Korea': '대한민국',
+    'Korea': '대한민국',
+    'Japan': '일본',
+    'China': '중국',
+    'United States': '미국',
+    'United Kingdom': '영국',
+    'France': '프랑스',
+    'Germany': '독일',
+    'Italy': '이탈리아',
+    'Spain': '스페인',
+    'Canada': '캐나다',
+    'Australia': '호주',
+    'Thailand': '태국',
+    'Vietnam': '베트남',
+    'Singapore': '싱가포르',
+    'Malaysia': '말레이시아',
+    'Indonesia': '인도네시아',
+    'Philippines': '필리핀',
+    'Taiwan': '대만',
+    'Hong Kong': '홍콩',
+    'No country info': '국가 정보 없음',
+    'No location info': '지명 정보 없음',
+    'No address information': '주소 정보 없음',
+    'Other': '기타',
+
+    // Korean cities (English to Korean)
+    'Seoul': '서울',
+    'Busan': '부산',
+    'Incheon': '인천',
+    'Daegu': '대구',
+    'Daejeon': '대전',
+    'Gwangju': '광주',
+    'Ulsan': '울산',
+    'Sejong': '세종',
+
+    // Provinces
+    'Gyeonggi-do': '경기도',
+    'Gangwon-do': '강원도',
+    'Chungcheongbuk-do': '충청북도',
+    'Chungcheongnam-do': '충청남도',
+    'Jeollabuk-do': '전라북도',
+    'Jeollanam-do': '전라남도',
+    'Gyeongsangbuk-do': '경상북도',
+    'Gyeongsangnam-do': '경상남도',
+    'Jeju-do': '제주도',
+
+    // Gyeonggi-do cities
+    'Suwon': '수원',
+    'Seongnam': '성남',
+    'Goyang': '고양',
+    'Yongin': '용인',
+    'Bucheon': '부천',
+    'Ansan': '안산',
+    'Anyang': '안양',
+    'Namyangju': '남양주',
+    'Hwaseong': '화성',
+    'Pyeongtaek': '평택',
+    'Uijeongbu': '의정부',
+    'Siheung': '시흥',
+    'Paju': '파주',
+    'Gwangmyeong': '광명',
+    'Gimpo': '김포',
+    'Gunpo': '군포',
+    'Hanam': '하남',
+    'Osan': '오산',
+    'Icheon': '이천',
+    'Yangju': '양주',
+    'Anseong': '안성',
+    'Guri': '구리',
+    'Pocheon': '포천',
+    'Uiwang': '의왕',
+    'Gwangju': '광주',
+    'Yeoju': '여주',
+    'Dongducheon': '동두천',
+    'Gwacheon': '과천',
+
+    // Gangwon-do cities
+    'Chuncheon': '춘천',
+    'Wonju': '원주',
+    'Gangneung': '강릉',
+    'Donghae': '동해',
+    'Taebaek': '태백',
+    'Sokcho': '속초',
+    'Samcheok': '삼척',
+
+    // Chungcheong region cities
+    'Cheongju': '청주',
+    'Chungju': '충주',
+    'Jecheon': '제천',
+    'Cheonan': '천안',
+    'Gongju': '공주',
+    'Boryeong': '보령',
+    'Asan': '아산',
+    'Seosan': '서산',
+    'Nonsan': '논산',
+    'Gyeryong': '계룡',
+    'Dangjin': '당진',
+
+    // Jeolla region cities
+    'Jeonju': '전주',
+    'Gunsan': '군산',
+    'Iksan': '익산',
+    'Jeongeup': '정읍',
+    'Namwon': '남원',
+    'Gimje': '김제',
+    'Mokpo': '목포',
+    'Yeosu': '여수',
+    'Suncheon': '순천',
+    'Naju': '나주',
+    'Gwangyang': '광양',
+
+    // Gyeongsang region cities
+    'Pohang': '포항',
+    'Gyeongju': '경주',
+    'Gimcheon': '김천',
+    'Andong': '안동',
+    'Gumi': '구미',
+    'Yeongju': '영주',
+    'Yeongcheon': '영천',
+    'Sangju': '상주',
+    'Mungyeong': '문경',
+    'Gyeongsan': '경산',
+    'Changwon': '창원',
+    'Jinju': '진주',
+    'Tongyeong': '통영',
+    'Sacheon': '사천',
+    'Gimhae': '김해',
+    'Miryang': '밀양',
+    'Geoje': '거제',
+    'Yangsan': '양산',
+
+    // Jeju
+    'Jeju': '제주',
+    'Seogwipo': '서귀포',
+
+    // Seoul districts (구)
+    'Jongno-gu': '종로구',
+    'Jung-gu': '중구',
+    'Yongsan-gu': '용산구',
+    'Seongdong-gu': '성동구',
+    'Gwangjin-gu': '광진구',
+    'Dongdaemun-gu': '동대문구',
+    'Jungnang-gu': '중랑구',
+    'Seongbuk-gu': '성북구',
+    'Gangbuk-gu': '강북구',
+    'Dobong-gu': '도봉구',
+    'Nowon-gu': '노원구',
+    'Eunpyeong-gu': '은평구',
+    'Seodaemun-gu': '서대문구',
+    'Mapo-gu': '마포구',
+    'Yangcheon-gu': '양천구',
+    'Gangseo-gu': '강서구',
+    'Guro-gu': '구로구',
+    'Geumcheon-gu': '금천구',
+    'Yeongdeungpo-gu': '영등포구',
+    'Dongjak-gu': '동작구',
+    'Gwanak-gu': '관악구',
+    'Seocho-gu': '서초구',
+    'Gangnam-gu': '강남구',
+    'Songpa-gu': '송파구',
+    'Gangdong-gu': '강동구',
+
+    // Common district suffixes
+    '-gu': '구',
+    '-si': '시',
+    '-gun': '군',
+    '-dong': '동',
+    '-ro': '로',
+    '-gil': '길',
+};
+
+// The same country and city can be stored in either language: addresses saved
+// through Nominatim come back in English, older or search-sourced records in
+// Korean. Counting them raw makes one country look like two, and splits one
+// city into two sidebar groups.
+const CANONICAL_PLACE_NAME = (() => {
+    const byKorean = new Map();
+    for (const [english, korean] of Object.entries(ADDRESS_TRANSLATIONS)) {
+        // Several English spellings share a Korean name ("Korea", "South
+        // Korea"); the first one wins so the canonical form is stable.
+        if (!byKorean.has(korean)) byKorean.set(korean, english);
+    }
+    return byKorean;
+})();
+
+// Reduce a country or city name to one spelling, whichever language it
+// arrived in. Unknown names are returned trimmed, so they still group with
+// themselves.
+function canonicalPlaceName(name) {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return '';
+    if (Object.prototype.hasOwnProperty.call(ADDRESS_TRANSLATIONS, trimmed)) {
+        return CANONICAL_PLACE_NAME.get(ADDRESS_TRANSLATIONS[trimmed]) || trimmed;
+    }
+    return CANONICAL_PLACE_NAME.get(trimmed) || trimmed;
+}
+
+const KNOWN_COUNTRIES = new Set([
+    'South Korea', 'Japan', 'China', 'United States', 'United Kingdom', 'France',
+    'Germany', 'Italy', 'Spain', 'Canada', 'Australia', 'Thailand', 'Vietnam',
+    'Singapore', 'Malaysia', 'Indonesia', 'Philippines', 'Taiwan', 'Hong Kong'
+]);
+
+// The country an address ends with. Addresses saved without a comma carry no
+// country segment, so the whole string is only accepted when it is itself a
+// country name.
+function countryOfAddress(address) {
+    const parts = (address || '').split(',');
+    const candidate = parts.length > 1 ? parts[parts.length - 1] : address;
+    const canonical = canonicalPlaceName(candidate);
+    if (!canonical) return '';
+    if (parts.length > 1) return canonical;
+    return KNOWN_COUNTRIES.has(canonical) ? canonical : '';
+}
+
 // --- Travel Wrapped statistics ---
 
 const DEFAULT_YEAR_GOAL = 12;
@@ -3485,10 +3532,9 @@ async function generateShareImage() {
     // Every stat below is computed over the whole selection. Slicing to the
     // first few places here used to cap the headline count and skew the rest.
 
-    const uniqueCountries = new Set(targetPlaces.map(p => {
-        const parts = p.address?.split(',') || [];
-        return parts.length > 1 ? parts[parts.length - 1].trim() : '';
-    }).filter(c => c)).size;
+    const uniqueCountries = new Set(
+        targetPlaces.map(p => countryOfAddress(p.address)).filter(Boolean)
+    ).size;
 
     const ratedPlaces = targetPlaces.filter(p => p.rating > 0);
     const avgRating = ratedPlaces.length
@@ -4246,21 +4292,35 @@ async function loadSharedPlacesByToken(token) {
             sharedUserNickname = 'Anonymous';
         }
 
-        // Load public places
-        let placesQuery = supabase
-            .from('places')
-            .select('*')
-            .eq('user_id', sharedUserId)
-            .eq('is_public', true);
+        // Load the shared places. get_shared_places() validates the token
+        // server-side, which is what lets the places table stay closed to
+        // direct reads (supabase_fix_places_rls.sql). Until that migration is
+        // applied the function does not exist, so fall back to the old query.
+        let places = null;
+        const { data: rpcPlaces, error: rpcError } = await supabase
+            .rpc('get_shared_places', { share_token: token });
 
-        // Filter by specific place IDs if present in token
-        if (tokenData.place_ids && tokenData.place_ids.length > 0) {
-            placesQuery = placesQuery.in('id', tokenData.place_ids);
+        if (!rpcError) {
+            places = rpcPlaces || [];
+        } else {
+            if (import.meta.env.DEV) {
+                console.warn('get_shared_places unavailable, falling back:', rpcError.message);
+            }
+            let placesQuery = supabase
+                .from('places')
+                .select('*')
+                .eq('user_id', sharedUserId)
+                .eq('is_public', true);
+
+            // Filter by specific place IDs if present in token
+            if (tokenData.place_ids && tokenData.place_ids.length > 0) {
+                placesQuery = placesQuery.in('id', tokenData.place_ids);
+            }
+
+            const { data: fallbackPlaces, error: placesError } = await placesQuery;
+            if (placesError) throw placesError;
+            places = fallbackPlaces || [];
         }
-
-        const { data: places, error: placesError } = await placesQuery;
-
-        if (placesError) throw placesError;
 
         allPlaces = places || [];
 
