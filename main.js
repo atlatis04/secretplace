@@ -3456,39 +3456,6 @@ function countryOfAddress(address) {
 
 const DEFAULT_YEAR_GOAL = 12;
 
-// Great-circle distance between two coordinates, in kilometres.
-function haversineKm(aLat, aLng, bLat, bLng) {
-    const toRad = deg => (deg * Math.PI) / 180;
-    const R = 6371;
-    const dLat = toRad(bLat - aLat);
-    const dLng = toRad(bLng - aLng);
-    const h = Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(h));
-}
-
-// Distance walked through the places in visit order. Undated places have no
-// position in the trip, so they are left out of the path rather than guessed.
-function calculateTravelDistance(places) {
-    const route = places
-        .filter(p => p.visit_date && Number.isFinite(p.latitude) && Number.isFinite(p.longitude))
-        .sort((a, b) => new Date(a.visit_date) - new Date(b.visit_date));
-
-    let total = 0;
-    for (let i = 1; i < route.length; i++) {
-        total += haversineKm(
-            route[i - 1].latitude, route[i - 1].longitude,
-            route[i].latitude, route[i].longitude
-        );
-    }
-    return total;
-}
-
-function formatDistance(km) {
-    if (km < 1) return '0';
-    return Math.round(km).toLocaleString('en-US');
-}
-
 // The label people recognise their year by: the tag they used most, falling
 // back to the city that shows up most often in the saved addresses.
 function mostVisitedLabel(places) {
@@ -3528,15 +3495,13 @@ function dominantVisitYear(places) {
 // whatever filter happened to be applied. It is now built from an explicit
 // selection so what lands in the image is what the user asked for.
 
-const CARD_MONTH_LABELS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-
 const cardState = {
     range: 'all',
     year: null,
     monthYear: null,
     month: null,
     picked: new Set(),
-    theme: 'neon',
+    layout: 'poster',
     ratio: 'square'
 };
 
@@ -3682,11 +3647,11 @@ if (cardModal) {
         updateCardSummary();
     });
 
-    document.getElementById('card-theme')?.addEventListener('click', e => {
-        const btn = e.target.closest('.theme-btn');
+    document.getElementById('card-layout')?.addEventListener('click', e => {
+        const btn = e.target.closest('.layout-btn');
         if (!btn) return;
-        cardState.theme = btn.dataset.theme;
-        document.querySelectorAll('#card-theme .theme-btn').forEach(b => b.classList.toggle('active', b === btn));
+        cardState.layout = btn.dataset.layout;
+        document.querySelectorAll('#card-layout .layout-btn').forEach(b => b.classList.toggle('active', b === btn));
     });
 
     document.getElementById('card-ratio')?.addEventListener('click', e => {
@@ -3734,69 +3699,150 @@ if (cardModal) {
 
 // --- Rendering ----------------------------------------------------------
 
-// Never let one slow step hold the whole card hostage.
-function withTimeout(promise, ms, fallback) {
-    return Promise.race([
-        promise,
-        new Promise(resolve => setTimeout(() => resolve(fallback), ms))
-    ]);
-}
-
-// Moving the viewport starts a fresh round of tile requests, and the ones the
-// move aborted never settle - html-to-image waits on them forever. So wait for
-// the layer to report itself loaded before capturing anything.
-function waitForTiles(timeoutMs = 6000) {
-    return new Promise(resolve => {
-        if (!currentTileLayer) return resolve();
-        let done = false;
-        const finish = () => {
-            if (done) return;
-            done = true;
-            currentTileLayer.off('load', finish);
-            resolve();
-        };
-        currentTileLayer.on('load', finish);
-        setTimeout(finish, timeoutMs);
+// The cities a selection covers, most-visited first, as people name them.
+function cardCities(places) {
+    const tally = new Map();
+    places.forEach(place => {
+        const first = place.address?.split(',')[0]?.trim().split(' ')[0];
+        const city = canonicalPlaceName(first);
+        if (city) tally.set(city, (tally.get(city) || 0) + 1);
     });
+    return [...tally.entries()].sort((a, b) => b[1] - a[1]).map(([city]) => translateAddress(city));
 }
 
-// Frames the selected places on the live map and captures it for the card.
-async function captureCardMap(places) {
-    const mapElement = document.getElementById('map');
-    const controls = document.querySelectorAll(
-        '.leaflet-control-container, .search-container, .map-controls-repositioned, .sidebar, #first-place-empty-state'
-    );
+function cardDateRange(places) {
+    const dates = places.map(p => p.visit_date).filter(Boolean).sort();
+    if (!dates.length) return '';
+    const short = d => d.replaceAll('-', '.');
+    return dates[0] === dates[dates.length - 1]
+        ? short(dates[0])
+        : `${short(dates[0])} — ${short(dates[dates.length - 1]).slice(5)}`;
+}
 
-    const previousCentre = map.getCenter();
-    const previousZoom = map.getZoom();
+// Draws the saved places from their own coordinates. Deliberately no line
+// between them: a card is not an itinerary, and joining the dots implied a
+// route the user never recorded. Each place is its own mark instead - its pin
+// colour, sized by how highly it was rated.
+function placeMapSvg(places, palette) {
+    const pts = places.filter(p => Number.isFinite(p.latitude) && Number.isFinite(p.longitude));
+    if (!pts.length) return '';
 
-    const tilesReady = waitForTiles();
-    if (places.length === 1) {
-        map.setView([places[0].latitude, places[0].longitude], 15);
-    } else if (places.length > 1) {
-        map.fitBounds(L.latLngBounds(places.map(p => [p.latitude, p.longitude])), { padding: [70, 70] });
-    }
+    const lats = pts.map(p => p.latitude);
+    const lngs = pts.map(p => p.longitude);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    // A single place, or several in one spot, would divide by zero.
+    const spanLat = Math.max(maxLat - minLat, 0.01);
+    const spanLng = Math.max(maxLng - minLng, 0.01);
+    // Longitude degrees are shorter this far north; keep the shape honest.
+    const scale = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
+    const span = Math.max(spanLat, spanLng * scale);
+    const pad = 14;
+    const box = 100 - pad * 2;
 
-    controls.forEach(c => (c.style.visibility = 'hidden'));
-    try {
-        await tilesReady;
-        // A short settle for the tiles that finished last to paint.
-        await new Promise(resolve => setTimeout(resolve, 400));
-        return await withTimeout(htmlToImage.toPng(mapElement, {
-            pixelRatio: 1,
-            skipFonts: true,
-            width: mapElement.offsetWidth,
-            height: mapElement.offsetHeight,
-            // Anything still mid-flight would stall the capture.
-            filter: node => !(node.tagName === 'IMG' && !node.complete)
-        }), 12000, '');
-    } catch (err) {
-        console.error('Map capture failed:', err);
-        return '';
-    } finally {
-        controls.forEach(c => (c.style.visibility = 'visible'));
-        map.setView(previousCentre, previousZoom);
-    }
+    const project = p => ({
+        x: pad + box / 2 + ((p.longitude - (minLng + maxLng) / 2) * scale / span) * box,
+        y: pad + box / 2 - ((p.latitude - (minLat + maxLat) / 2) / span) * box
+    });
+
+    const marks = pts.map(p => {
+        const { x, y } = project(p);
+        const r = 1.9 + (p.rating || 0) * 0.62;
+        const colour = p.color || palette.fallback;
+        return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${(r + 1.6).toFixed(2)}" fill="${colour}" opacity=".18"/>` +
+               `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r.toFixed(2)}" fill="${colour}" stroke="${palette.ring}" stroke-width="1"/>`;
+    }).join('');
+
+    const grid = [25, 50, 75].map(v =>
+        `<line x1="${v}" y1="2" x2="${v}" y2="98" stroke="${palette.grid}" stroke-width=".5"/>` +
+        `<line x1="2" y1="${v}" x2="98" y2="${v}" stroke="${palette.grid}" stroke-width=".5"/>`
+    ).join('');
+
+    return `<svg viewBox="0 0 100 100" role="img" aria-label="저장한 장소 위치">${grid}${marks}</svg>`;
+}
+
+const CARD_PALETTES = {
+    poster: { grid: 'rgba(236,231,220,.1)', ring: '#0c0e0d', fallback: '#7dd3c0' },
+    collage: { grid: 'rgba(28,30,28,.11)', ring: '#eceae4', fallback: '#2f6357' }
+};
+
+function coordLabel(place) {
+    if (!place) return '';
+    const ns = place.latitude >= 0 ? 'N' : 'S';
+    const ew = place.longitude >= 0 ? 'E' : 'W';
+    return `${Math.abs(place.latitude).toFixed(2)}°${ns} ${Math.abs(place.longitude).toFixed(2)}°${ew}`;
+}
+
+// Best-rated first, and only places that actually have a photo.
+function cardPhotoPlaces(places) {
+    return places
+        .filter(p => p.photo_urls?.length)
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+}
+
+function renderPosterLayout(places, period) {
+    const photos = cardPhotoPlaces(places);
+    const hero = photos[0];
+    const heroImg = document.getElementById('poster-photo');
+    heroImg.src = hero ? hero.photo_urls[0] : '';
+    heroImg.style.display = hero ? '' : 'none';
+
+    document.getElementById('poster-period').textContent = period;
+    document.getElementById('poster-where').textContent = cardCities(places).slice(0, 5).join(' · ');
+    document.getElementById('poster-coord').textContent = coordLabel(hero || places[0]);
+
+    const listed = places
+        .slice()
+        .sort((a, b) => (a.visit_date || '').localeCompare(b.visit_date || ''));
+    const shown = listed.slice(0, cardState.ratio === 'story' ? 9 : 6);
+    const rest = listed.length - shown.length;
+
+    document.getElementById('poster-stops').innerHTML =
+        shown.map((place, i) => `
+            <li>
+                <span class="idx">${String(i + 1).padStart(2, '0')}</span>
+                <span class="name">${escapeHtml(place.name)}</span>
+                <span class="when">${(place.visit_date || '').slice(5).replace('-', '.')}</span>
+            </li>`).join('') +
+        (rest > 0 ? `<li class="more">외 ${rest}곳</li>` : '');
+
+    document.getElementById('poster-map').innerHTML = placeMapSvg(places, CARD_PALETTES.poster);
+
+    const rated = places.filter(p => p.rating > 0);
+    const avg = rated.length ? (rated.reduce((sum, p) => sum + p.rating, 0) / rated.length).toFixed(1) : null;
+    const tags = cardTopTags(places, 2).map(t => `#${t}`).join(' ');
+    document.getElementById('poster-facts').innerHTML =
+        `<span><b>${places.length}</b> 곳</span>` +
+        (avg ? `<span><i>★</i> ${avg}</span>` : '') +
+        (tags ? `<span>${escapeHtml(tags)}</span>` : '');
+}
+
+function renderCollageLayout(places, period) {
+    document.getElementById('collage-period').textContent = period;
+    document.getElementById('collage-where').textContent = cardCities(places).slice(0, 5).join(' · ');
+
+    const rated = places.filter(p => p.rating > 0);
+    const avg = rated.length ? (rated.reduce((sum, p) => sum + p.rating, 0) / rated.length).toFixed(1) : null;
+    document.getElementById('collage-facts').innerHTML =
+        `<b>${places.length}곳</b>` + (avg ? `<span>★ ${avg} 평균</span>` : '');
+
+    // Four tiles on the square card, five on the taller one; the last tile
+    // spans two columns so the grid never ends on a gap.
+    const slots = cardState.ratio === 'story' ? 5 : 4;
+    const photos = cardPhotoPlaces(places).slice(0, slots);
+    document.getElementById('collage-mosaic').innerHTML = photos.map((place, i) => {
+        const wide = i === photos.length - 1 && photos.length === slots && cardState.ratio !== 'story';
+        return `<figure${wide ? ' class="wide"' : ''}>
+                    <img src="${place.photo_urls[0]}" crossorigin="anonymous" alt="">
+                    <figcaption>${coordLabel(place)}</figcaption>
+                </figure>`;
+    }).join('');
+
+    document.getElementById('collage-map').innerHTML = placeMapSvg(places, CARD_PALETTES.collage);
+    document.getElementById('collage-tags').innerHTML =
+        cardTopTags(places, cardState.ratio === 'story' ? 5 : 4)
+            .map(name => `<span># ${escapeHtml(name)}</span>`).join('');
+    document.getElementById('collage-range').textContent = cardDateRange(places);
 }
 
 async function generateShareImage() {
@@ -3813,89 +3859,32 @@ async function generateShareImage() {
     showToast(t('card.generating'));
 
     const canvas = template.querySelector('.card-canvas');
-    canvas.dataset.theme = cardState.theme;
+    canvas.dataset.layout = cardState.layout;
     canvas.dataset.ratio = cardState.ratio;
 
-    // Head
     const period = cardPeriodLabel(places);
-    document.getElementById('card-title').textContent = period;
-    const countries = new Set(places.map(p => countryOfAddress(p.address)).filter(Boolean));
-    document.getElementById('card-sub').textContent =
-        `${places.length} places · ${[...countries].join(' · ') || 'On the map'}`;
+    if (cardState.layout === 'poster') renderPosterLayout(places, period);
+    else renderCollageLayout(places, period);
 
-    // Stats
-    const rated = places.filter(p => p.rating > 0);
-    const avg = rated.length ? (rated.reduce((sum, p) => sum + p.rating, 0) / rated.length).toFixed(1) : '0.0';
-    const stats = [
-        [places.length, 'PLACES'],
-        [formatDistance(calculateTravelDistance(places)), 'KM'],
-        [`${avg}★`, 'RATING'],
-        [countries.size || '—', countries.size === 1 ? 'COUNTRY' : 'COUNTRIES']
-    ];
-    document.getElementById('card-stats').innerHTML =
-        stats.map(([value, label]) => `<div class="card-stat"><b>${value}</b><span>${label}</span></div>`).join('');
-
-    // Photos: best-rated first, more of them on the taller canvas.
-    const photoLimit = 4;
-    document.getElementById('card-photos').innerHTML = places
-        .filter(p => p.photo_urls?.length)
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        .slice(0, photoLimit)
-        .map(p => `<img src="${p.photo_urls[0]}" crossorigin="anonymous">`)
-        .join('');
-
-    // Tags
-    document.getElementById('card-tags').innerHTML =
-        cardTopTags(places, cardState.ratio === 'story' ? 5 : 4).map(name => `<span># ${escapeHtml(name)}</span>`).join('');
-
-    // Month bars, hidden when the card is already one month.
-    const monthsWrap = document.querySelector('.card-months');
-    if (cardState.range === 'month') {
-        monthsWrap.style.display = 'none';
-    } else {
-        monthsWrap.style.display = '';
-        const counts = new Array(12).fill(0);
-        places.forEach(p => {
-            if (!p.visit_date) return;
-            const m = new Date(p.visit_date).getMonth();
-            if (!Number.isNaN(m)) counts[m]++;
-        });
-        const max = Math.max(...counts, 1);
-        document.getElementById('card-months').innerHTML =
-            counts.map(c => `<i style="height:${Math.max((c / max) * 100, 3)}%"></i>`).join('');
-    }
-
-    document.getElementById('card-foot-left').textContent = 'maplog.space';
-    document.getElementById('card-foot-right').textContent = CARD_MONTH_LABELS[new Date().getMonth()] + ' ' + new Date().getFullYear();
-
-    // Map
-    const mapDataUrl = await captureCardMap(places);
-    const slot = document.getElementById('card-map-slot');
-    slot.innerHTML = mapDataUrl ? `<img src="${mapDataUrl}">` : '';
-
-    // Capture
     const width = 1080;
     const height = cardState.ratio === 'story' ? 1920 : 1080;
-    template.style.cssText = `position: fixed; top: 0; left: 0; z-index: 999999; visibility: visible; opacity: 1;`;
     const oldScrollX = window.scrollX;
     const oldScrollY = window.scrollY;
+    template.style.cssText = 'position: fixed; top: 0; left: 0; z-index: 999999; visibility: visible; opacity: 1;';
     window.scrollTo(0, 0);
 
     try {
         await document.fonts.ready;
-        await new Promise(resolve => setTimeout(resolve, 900));
-        const dataUrl = await withTimeout(htmlToImage.toPng(canvas, {
+        await waitForCardImages(canvas);
+        const dataUrl = await htmlToImage.toPng(canvas, {
             pixelRatio: 2,
             width,
             height,
-            skipFonts: true,
-            filter: node => !(node.tagName === 'IMG' && !node.complete)
-        }), 25000, '');
-
-        if (!dataUrl) throw new Error('capture timed out');
+            skipFonts: true
+        });
 
         const link = document.createElement('a');
-        link.download = `Maplog_${period.replace(/[^\w.-]/g, '')}_${cardState.theme}.png`;
+        link.download = `Maplog_${period.replace(/[^\w.-]/g, '')}_${cardState.layout}.png`;
         link.href = dataUrl;
         link.click();
         showToast(t('card.saved'));
@@ -3906,6 +3895,22 @@ async function generateShareImage() {
         template.style.cssText = 'position: fixed; top: -20000px; left: -20000px; z-index: -1000;';
         window.scrollTo(oldScrollX, oldScrollY);
     }
+}
+
+// Photos come from storage over the network; capturing before they decode
+// would bake blank boxes into the card.
+function waitForCardImages(root, timeoutMs = 12000) {
+    const pending = [...root.querySelectorAll('img')]
+        .filter(img => img.src && !(img.complete && img.naturalWidth > 0))
+        .map(img => new Promise(resolve => {
+            img.addEventListener('load', resolve, { once: true });
+            img.addEventListener('error', resolve, { once: true });
+        }));
+    if (!pending.length) return Promise.resolve();
+    return Promise.race([
+        Promise.all(pending),
+        new Promise(resolve => setTimeout(resolve, timeoutMs))
+    ]);
 }
 
 // Google OAuth Login Handler

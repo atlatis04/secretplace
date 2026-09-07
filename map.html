@@ -481,19 +481,15 @@
           </div>
 
           <div class="builder-group">
-            <label class="builder-label">스타일</label>
-            <div class="theme-grid" id="card-theme">
-              <button type="button" class="theme-btn active" data-theme="neon">
-                <span class="theme-swatch theme-swatch-neon"></span>
-                <span>네온</span>
+            <label class="builder-label">레이아웃</label>
+            <div class="layout-grid" id="card-layout">
+              <button type="button" class="layout-btn active" data-layout="poster">
+                <span class="layout-thumb layout-thumb-poster" aria-hidden="true"></span>
+                <span>사진 포스터</span>
               </button>
-              <button type="button" class="theme-btn" data-theme="mono">
-                <span class="theme-swatch theme-swatch-mono"></span>
-                <span>모노</span>
-              </button>
-              <button type="button" class="theme-btn" data-theme="film">
-                <span class="theme-swatch theme-swatch-film"></span>
-                <span>필름</span>
+              <button type="button" class="layout-btn" data-layout="collage">
+                <span class="layout-thumb layout-thumb-collage" aria-hidden="true"></span>
+                <span>사진 콜라주</span>
               </button>
             </div>
           </div>
@@ -688,31 +684,52 @@
 
     <!-- Cyberpunk Share Card Template (for image generation) -->
     <div id="share-card-template">
-      <div class="card-canvas" data-theme="neon" data-ratio="square">
-        <div class="card-grain" aria-hidden="true"></div>
+      <div class="card-canvas" data-layout="poster" data-ratio="square">
 
-        <header class="card-head">
-          <div class="card-kicker">MAPLOG</div>
-          <h1 class="card-title" id="card-title">2026</h1>
-          <div class="card-sub" id="card-sub"></div>
-        </header>
-
-        <div class="card-map" id="card-map-slot"></div>
-
-        <div class="card-stats" id="card-stats"></div>
-
-        <div class="card-photos" id="card-photos"></div>
-
-        <div class="card-tagline" id="card-tags"></div>
-
-        <div class="card-months">
-          <div class="card-months-bars" id="card-months"></div>
+        <!-- Layout A: one photo carries the card -->
+        <div class="poster">
+          <div class="poster-photo">
+            <img id="poster-photo" alt="" crossorigin="anonymous">
+            <div class="poster-scrim"></div>
+            <div class="poster-top">
+              <span>MAPLOG</span>
+              <span id="poster-coord"></span>
+            </div>
+            <div class="poster-head">
+              <div class="card-period" id="poster-period"></div>
+              <div class="poster-where" id="poster-where"></div>
+            </div>
+          </div>
+          <div class="poster-body">
+            <ol class="stops" id="poster-stops"></ol>
+            <div class="place-map" id="poster-map"></div>
+          </div>
+          <div class="poster-foot">
+            <div class="facts" id="poster-facts"></div>
+            <span>maplog.space</span>
+          </div>
         </div>
 
-        <footer class="card-foot">
-          <span id="card-foot-left">maplog.space</span>
-          <span id="card-foot-right"></span>
-        </footer>
+        <!-- Layout B: a mosaic of the trip -->
+        <div class="collage">
+          <div class="collage-head">
+            <div>
+              <div class="card-period" id="collage-period"></div>
+              <div class="collage-where" id="collage-where"></div>
+            </div>
+            <div class="collage-facts" id="collage-facts"></div>
+          </div>
+          <div class="mosaic" id="collage-mosaic"></div>
+          <div class="collage-lower">
+            <div class="place-map" id="collage-map"></div>
+            <div class="collage-tags" id="collage-tags"></div>
+          </div>
+          <div class="collage-foot">
+            <span id="collage-range"></span>
+            <span>maplog.space</span>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
