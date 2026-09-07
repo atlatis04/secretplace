@@ -1739,14 +1739,16 @@ textarea {
     font-feature-settings: 'tnum' 1;
 }
 
-.card-canvas[data-ratio="square"] { width: 1080px; height: 1080px; padding: 64px; gap: 30px; }
+.card-canvas[data-ratio="square"] { width: 1080px; height: 1080px; padding: 56px; gap: 20px; }
 .card-canvas[data-ratio="story"]  { width: 1080px; height: 1920px; padding: 96px 72px 104px; gap: 40px; }
 
 /* Head */
-.card-kicker { font-size: 22px; font-weight: 800; letter-spacing: 8px; margin-bottom: 14px; }
-.card-title { font-size: 108px; font-weight: 800; letter-spacing: -4px; line-height: .96; }
-.card-sub { margin-top: 14px; font-size: 26px; font-weight: 500; letter-spacing: -.4px; }
+.card-kicker { font-size: 21px; font-weight: 800; letter-spacing: 8px; margin-bottom: 10px; }
+.card-title { font-size: 92px; font-weight: 800; letter-spacing: -4px; line-height: .96; }
+.card-sub { margin-top: 10px; font-size: 26px; font-weight: 500; letter-spacing: -.4px; }
 .card-canvas[data-ratio="story"] .card-title { font-size: 148px; }
+.card-canvas[data-ratio="story"] .card-kicker { margin-bottom: 14px; }
+.card-canvas[data-ratio="story"] .card-sub { margin-top: 14px; }
 .card-canvas[data-ratio="story"] .card-sub { font-size: 32px; }
 
 /* Map */
@@ -1767,7 +1769,8 @@ textarea {
 /* Photos */
 .card-photos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .card-photos:empty { display: none; }
-.card-photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; display: block; }
+.card-photos img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 16px; display: block; }
+.card-canvas[data-ratio="story"] .card-photos img { aspect-ratio: 1; }
 .card-canvas[data-ratio="story"] .card-photos { grid-template-columns: repeat(4, 1fr); gap: 14px; }
 
 /* Tags */
@@ -1777,7 +1780,7 @@ textarea {
 .card-canvas[data-ratio="story"] .card-tagline span { font-size: 25px; padding: 13px 22px; }
 
 /* Month bars */
-.card-months-bars { display: flex; align-items: flex-end; gap: 8px; height: 84px; }
+.card-months-bars { display: flex; align-items: flex-end; gap: 8px; height: 56px; }
 .card-months-bars i { flex: 1; border-radius: 6px 6px 0 0; min-height: 4px; }
 .card-canvas[data-ratio="story"] .card-months-bars { height: 130px; gap: 11px; }
 
