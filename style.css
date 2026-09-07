@@ -7,7 +7,7 @@
     --glass-border: rgba(255, 255, 255, 0.1);
     --text-white: #f8fafc;
     --text-gray: #94a3b8;
-    --font-main: 'Pretendard', sans-serif;
+    --font-main: 'Pretendard Variable', 'Pretendard', sans-serif;
 }
 
 * {
@@ -1726,7 +1726,7 @@ textarea {
     width: 1080px;
     height: 1080px;
     background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%);
-    font-family: 'Pretendard', -apple-system, sans-serif;
+    font-family: 'Pretendard Variable', 'Pretendard', -apple-system, sans-serif;
     color: #00f0ff;
     z-index: -1000;
     overflow: hidden;
