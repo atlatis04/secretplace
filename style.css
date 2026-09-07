@@ -1761,6 +1761,7 @@ textarea {
 .poster-photo { position: relative; flex: none; height: 58%; background: #141716; }
 .card-canvas[data-ratio="story"] .poster-photo { height: 52%; }
 .poster-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.poster-photo .place-map { position: absolute; inset: 8% 12% 18%; }
 .poster-scrim {
     position: absolute; inset: 0;
     background: linear-gradient(180deg, rgba(12,14,13,.58) 0%, rgba(12,14,13,0) 32%, rgba(12,14,13,.94) 100%);
@@ -1830,13 +1831,24 @@ textarea {
     font-weight: 600; letter-spacing: .16em; color: #8a8f88;
 }
 
-.mosaic {
-    flex: 1; min-height: 0; display: grid; gap: 1.4cqw;
-    grid-template-columns: 1.62fr 1fr 1fr; grid-template-rows: 1fr 1fr;
-}
+/* The tile count drives the grid, so the mosaic always fills its area
+   whether the selection has one photo or six. */
+.mosaic { flex: 1; min-height: 0; display: grid; gap: 1.4cqw; }
 .mosaic figure { margin: 0; position: relative; overflow: hidden; background: #dcd9d1; }
-.mosaic figure:first-child { grid-row: span 2; }
-.mosaic figure.wide { grid-column: span 2; }
+.mosaic[data-n="1"] { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.mosaic[data-n="2"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+.mosaic[data-n="3"] { grid-template-columns: 1.6fr 1fr; grid-template-rows: 1fr 1fr; }
+.mosaic[data-n="3"] figure:first-child { grid-row: span 2; }
+.mosaic[data-n="4"] { grid-template-columns: 1.62fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.mosaic[data-n="4"] figure:first-child { grid-row: span 2; }
+.mosaic[data-n="4"] figure:last-child { grid-column: span 2; }
+.mosaic[data-n="5"] { grid-template-columns: 1.62fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.mosaic[data-n="5"] figure:first-child { grid-row: span 2; }
+.mosaic[data-n="6"] { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); }
+.mosaic[data-n="6"] figure:first-child { grid-row: span 2; grid-column: span 2; }
+/* No photos at all: the map takes the whole area rather than leaving a hole. */
+.mosaic[data-n="0"] { grid-template-columns: 1fr; grid-template-rows: 1fr; background: none; }
+.mosaic[data-n="0"] .place-map { width: 100%; height: 100%; }
 .mosaic img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .mosaic figcaption {
     position: absolute; left: .9cqw; bottom: .8cqw;
@@ -1864,8 +1876,6 @@ textarea {
 .card-canvas[data-ratio="story"] .collage-facts b { font-size: 5.4cqw; }
 .card-canvas[data-ratio="story"] .collage-facts span,
 .card-canvas[data-ratio="story"] .collage-foot { font-size: 1.8cqw; }
-.card-canvas[data-ratio="story"] .mosaic { grid-template-rows: 1fr 1fr 1fr; }
-.card-canvas[data-ratio="story"] .mosaic figure:first-child { grid-row: span 2; }
 .card-canvas[data-ratio="story"] .mosaic figcaption { font-size: 1.5cqw; }
 .card-canvas[data-ratio="story"] .collage-tags span { font-size: 2.1cqw; padding: .7cqw 1.8cqw; }
 

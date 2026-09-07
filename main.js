@@ -3781,11 +3781,23 @@ function cardPhotoPlaces(places) {
 }
 
 function renderPosterLayout(places, period) {
-    const photos = cardPhotoPlaces(places);
-    const hero = photos[0];
+    const hero = cardPhotoPlaces(places)[0];
     const heroImg = document.getElementById('poster-photo');
-    heroImg.src = hero ? hero.photo_urls[0] : '';
-    heroImg.style.display = hero ? '' : 'none';
+    const heroSlot = heroImg.parentElement;
+    heroSlot.querySelector('.place-map')?.remove();
+    if (hero) {
+        heroImg.src = hero.photo_urls[0];
+        heroImg.style.display = '';
+    } else {
+        // Nothing photographed in this selection - show the places instead of
+        // a blank panel.
+        heroImg.removeAttribute('src');
+        heroImg.style.display = 'none';
+        const map = document.createElement('div');
+        map.className = 'place-map';
+        map.innerHTML = placeMapSvg(places, CARD_PALETTES.poster);
+        heroSlot.insertBefore(map, heroSlot.querySelector('.poster-scrim'));
+    }
 
     document.getElementById('poster-period').textContent = period;
     document.getElementById('poster-where').textContent = cardCities(places).slice(0, 5).join(' · ');
@@ -3826,19 +3838,23 @@ function renderCollageLayout(places, period) {
     document.getElementById('collage-facts').innerHTML =
         `<b>${places.length}곳</b>` + (avg ? `<span>★ ${avg} 평균</span>` : '');
 
-    // Four tiles on the square card, five on the taller one; the last tile
-    // spans two columns so the grid never ends on a gap.
-    const slots = cardState.ratio === 'story' ? 5 : 4;
+    // Six tiles fill the taller canvas, four the square one. The CSS lays the
+    // grid out from the count, so fewer photos still fill the area.
+    const slots = cardState.ratio === 'story' ? 6 : 4;
     const photos = cardPhotoPlaces(places).slice(0, slots);
-    document.getElementById('collage-mosaic').innerHTML = photos.map((place, i) => {
-        const wide = i === photos.length - 1 && photos.length === slots && cardState.ratio !== 'story';
-        return `<figure${wide ? ' class="wide"' : ''}>
-                    <img src="${place.photo_urls[0]}" crossorigin="anonymous" alt="">
-                    <figcaption>${coordLabel(place)}</figcaption>
-                </figure>`;
-    }).join('');
+    const mosaic = document.getElementById('collage-mosaic');
+    mosaic.dataset.n = photos.length;
+    mosaic.innerHTML = photos.length
+        ? photos.map(place => `
+            <figure>
+                <img src="${place.photo_urls[0]}" crossorigin="anonymous" alt="">
+                <figcaption>${coordLabel(place)}</figcaption>
+            </figure>`).join('')
+        : `<div class="place-map">${placeMapSvg(places, CARD_PALETTES.collage)}</div>`;
 
-    document.getElementById('collage-map').innerHTML = placeMapSvg(places, CARD_PALETTES.collage);
+    const lowerMap = document.getElementById('collage-map');
+    lowerMap.innerHTML = photos.length ? placeMapSvg(places, CARD_PALETTES.collage) : '';
+    lowerMap.style.display = photos.length ? '' : 'none';
     document.getElementById('collage-tags').innerHTML =
         cardTopTags(places, cardState.ratio === 'story' ? 5 : 4)
             .map(name => `<span># ${escapeHtml(name)}</span>`).join('');
