@@ -3836,7 +3836,7 @@ async function generateShareImage() {
         stats.map(([value, label]) => `<div class="card-stat"><b>${value}</b><span>${label}</span></div>`).join('');
 
     // Photos: best-rated first, more of them on the taller canvas.
-    const photoLimit = cardState.ratio === 'story' ? 6 : 4;
+    const photoLimit = 4;
     document.getElementById('card-photos').innerHTML = places
         .filter(p => p.photo_urls?.length)
         .sort((a, b) => (b.rating || 0) - (a.rating || 0))
@@ -3846,7 +3846,7 @@ async function generateShareImage() {
 
     // Tags
     document.getElementById('card-tags').innerHTML =
-        cardTopTags(places, cardState.ratio === 'story' ? 6 : 4).map(name => `<span># ${escapeHtml(name)}</span>`).join('');
+        cardTopTags(places, cardState.ratio === 'story' ? 5 : 4).map(name => `<span># ${escapeHtml(name)}</span>`).join('');
 
     // Month bars, hidden when the card is already one month.
     const monthsWrap = document.querySelector('.card-months');
