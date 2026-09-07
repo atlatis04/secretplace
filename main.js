@@ -3569,7 +3569,6 @@ function cardPeriodLabel(places) {
     if (cardState.range === 'month') {
         return `${cardState.monthYear}.${String(Number(cardState.month) + 1).padStart(2, '0')}`;
     }
-    if (cardState.range === 'pick') return `${places.length} PLACES`;
     const years = [...new Set(places.map(p => p.visit_date && new Date(p.visit_date).getFullYear()).filter(Boolean))].sort();
     if (!years.length) return String(new Date().getFullYear());
     return years.length === 1 ? String(years[0]) : `${years[0]}–${years[years.length - 1]}`;
@@ -3724,10 +3723,9 @@ if (cardModal) {
     });
 
     document.getElementById('card-pick-none')?.addEventListener('click', () => {
-        document.querySelectorAll('#card-pick-list input[type=checkbox]').forEach(cb => {
-            cb.checked = false;
-            cardState.picked.delete(cb.value);
-        });
+        // Clears the whole selection, including places the search is hiding.
+        cardState.picked.clear();
+        document.querySelectorAll('#card-pick-list input[type=checkbox]').forEach(cb => (cb.checked = false));
         updateCardSummary();
     });
 
