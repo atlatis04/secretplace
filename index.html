@@ -7,665 +7,418 @@
   <title>Maplog | Log your day</title>
 
   <!-- SEO Meta Tags -->
-  <meta name="description" content="Maplog - 다녀온 모든 곳이 하나의 지도가 됩니다. 사진과 메모, 별점과 방문 날짜를 남기고 여행별로 묶어 보관하는 나만의 지도 앨범 - Maplog">
-  <meta name="keywords" content="지도, 여행 기록, 사진 앨범, 위치 기반, 추억 저장, maplog, 지도 일기, 여행 컬렉션, 장소 기록, 여행 결산">
+  <meta name="description" content="Maplog - 사진만 올리면 위치와 날짜가 채워집니다. 다녀온 곳을 지도로 그려 한 장의 카드로 남기는 나만의 지도 앨범">
+  <meta name="keywords" content="지도, 여행 기록, 사진 앨범, 위치 기반, 추억 저장, maplog, 지도 일기, 여행 컬렉션, 장소 기록, 여행 카드">
   <meta name="author" content="Maplog">
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="Maplog | Log your day">
-  <meta property="og:description" content="다녀온 모든 곳이 하나의 지도가 됩니다. 사진과 메모, 별점과 방문 날짜를 남기고 여행별로 묶어 보관하는 나만의 지도 앨범 - Maplog">
+  <meta property="og:description" content="사진만 올리면 위치와 날짜가 채워집니다. 다녀온 곳을 지도로 그려 한 장의 카드로 남기세요.">
   <meta property="og:url" content="https://maplog.space">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Maplog | Log your day">
-  <meta name="twitter:description" content="다녀온 모든 곳이 하나의 지도가 됩니다. 사진과 메모로 남기는 나만의 지도 앨범">
+  <meta name="twitter:description" content="사진만 올리면 위치와 날짜가 채워집니다. 나만의 지도 앨범.">
 
   <link rel="canonical" href="https://maplog.space">
   <link rel="icon" type="image/png" href="/Maplog_Favicon.png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Maplog">
   <link rel="apple-touch-icon" href="/icon-192.png">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap">
   <style>
-    /* 기본 스타일 초기화 */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #171a20;
+      --ink-soft: #393c41;
+      --paper: #f4f4f4;
+      --btn-radius: 4px;
     }
 
+    html { scroll-behavior: smooth; }
+
     body {
-      font-family: 'Noto Sans KR', sans-serif;
-      background-color: #f8fbff;
-      color: #333;
+      font-family: 'Noto Sans KR', 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--ink);
+      background: #000;
+      -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
     }
 
-    /* 헤더 스타일 */
-    header {
-      padding: 20px 5%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(10px);
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    /* One screen per idea, snapped. */
+    .deck {
+      height: 100dvh;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
     }
 
-    .logo {
-      font-weight: 700;
-      font-size: 1.5rem;
-      color: #2dccad;
-    }
-
-    /* 히어로 섹션 (메인 배너) */
-    .hero {
+    .slide {
+      position: relative;
+      height: 100dvh;
+      scroll-snap-align: start;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 100px 5% 50px 5%;
-      min-height: 100vh;
-      position: relative;
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
       overflow: hidden;
     }
 
-    /* 지도 배경 */
-    #map-bg {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: -1;
-      opacity: 0.85;
-      filter: grayscale(10%) contrast(100%);
-    }
-
-    /* 텍스트 가독성을 위한 오버레이 */
-    .hero::after {
+    .slide::after {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(to bottom, rgba(248, 251, 255, 0.4), rgba(248, 251, 255, 0.8));
-      z-index: 0;
+      inset: 0;
       pointer-events: none;
     }
+    .slide[data-tone="dark"]::after {
+      background: linear-gradient(180deg, rgba(0, 0, 0, .62) 0%, rgba(0, 0, 0, .14) 46%, rgba(0, 0, 0, .58) 100%);
+    }
+    .slide[data-tone="light"]::after {
+      background: linear-gradient(180deg, rgba(255, 255, 255, .72) 0%, rgba(255, 255, 255, .2) 45%, rgba(255, 255, 255, .55) 100%);
+    }
+    .slide[data-tone="plain"] { background: #000; }
 
-    .hero-content {
+    .copy {
       position: relative;
-      z-index: 10;
+      z-index: 2;
+      margin-top: 14vh;
+      padding: 0 24px;
+      text-align: center;
+      max-width: 760px;
     }
-
-    .hero h1 {
-      font-size: 3.5rem;
-      font-weight: 700;
-      line-height: 1.3;
-      margin-bottom: 20px;
-      word-break: keep-all;
-      text-shadow: 0 2px 10px rgba(255, 255, 255, 0.8);
+    .copy h2 {
+      font-size: clamp(28px, 4.2vw, 42px);
+      font-weight: 500;
+      letter-spacing: -.02em;
+      line-height: 1.25;
+      text-wrap: balance;
     }
-
-    .hero h1 span {
-      color: #2dccad;
-    }
-
-    .hero p {
-      font-size: 1.3rem;
-      color: #444;
-      max-width: 650px;
-      margin-bottom: 40px;
+    .copy p {
+      margin-top: 10px;
+      font-size: clamp(14px, 1.5vw, 16px);
+      font-weight: 300;
       line-height: 1.6;
       word-break: keep-all;
-      font-weight: 400;
     }
-
-    /* 버튼 스타일 */
-    .cta-button {
+    .copy .under {
       display: inline-block;
-      background-color: #2dccad;
-      color: white;
-      padding: 18px 45px;
-      border-radius: 50px;
+      margin-top: 12px;
+      font-size: 14px;
+      font-weight: 400;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      color: inherit;
+    }
+
+    .slide[data-tone="dark"] .copy,
+    .slide[data-tone="plain"] .copy { color: #fff; }
+    .slide[data-tone="light"] .copy { color: var(--ink); }
+
+    /* Tesla's two-button bar, pinned near the bottom. */
+    .actions {
+      position: relative;
+      z-index: 2;
+      margin-top: auto;
+      margin-bottom: 8vh;
+      padding: 0 24px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 620px;
+    }
+    .btn {
+      flex: 1 1 200px;
+      min-width: 200px;
+      max-width: 280px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--btn-radius);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      text-align: center;
       text-decoration: none;
-      font-weight: 700;
-      font-size: 1.2rem;
-      box-shadow: 0 10px 25px rgba(45, 204, 173, 0.4);
-      transition: all 0.3s ease;
+      cursor: pointer;
+      transition: background-color .2s ease;
     }
+    .btn-solid { background: rgba(23, 26, 32, .8); color: #fff; }
+    .btn-solid:hover { background: rgba(23, 26, 32, .95); }
+    .btn-ghost { background: rgba(255, 255, 255, .65); color: var(--ink); }
+    .btn-ghost:hover { background: rgba(255, 255, 255, .85); }
 
-    .cta-button:hover {
-      transform: translateY(-5px) scale(1.02);
-      background-color: #25b89a;
-      box-shadow: 0 15px 30px rgba(45, 204, 173, 0.5);
+    .slide[data-tone="dark"] .btn-solid,
+    .slide[data-tone="plain"] .btn-solid { background: rgba(244, 244, 244, .92); color: var(--ink); }
+    .slide[data-tone="dark"] .btn-solid:hover,
+    .slide[data-tone="plain"] .btn-solid:hover { background: #fff; }
+    .slide[data-tone="dark"] .btn-ghost,
+    .slide[data-tone="plain"] .btn-ghost { background: rgba(35, 35, 35, .6); color: #fff; }
+    .slide[data-tone="dark"] .btn-ghost:hover,
+    .slide[data-tone="plain"] .btn-ghost:hover { background: rgba(35, 35, 35, .85); }
+
+    /* Header */
+    .bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 20;
+      background: linear-gradient(180deg, rgba(0, 0, 0, .38) 0%, rgba(0, 0, 0, 0) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px clamp(16px, 4vw, 40px);
     }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: .22em;
+      color: #fff;
+      text-decoration: none;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, .45);
+    }
+    .brand img { width: 22px; height: 22px; border-radius: 6px; }
+    .bar nav { display: flex; gap: 6px; }
+    .bar nav a {
+      padding: 6px 14px;
+      border-radius: var(--btn-radius);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, .45);
+    }
+    .bar nav a:hover { background: rgba(255, 255, 255, .16); }
 
-    /* 사진 핀 컨테이너 */
-    .pins-container {
+    .chevron {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 5;
-    }
-
-    /* 지도 위 핀/사진 애니메이션 샘플 */
-    .photo-pin {
-      position: absolute;
-      width: 300px;
-      height: 360px;
-      background: white;
-      padding: 15px 15px 50px 15px;
-      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
-      border-radius: 8px;
-      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      animation: float 4s ease-in-out infinite;
-      opacity: 0;
-      /* JS로 표시될 예정 */
-    }
-
-    .photo-pin img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 4px;
-      background: #eee;
-    }
-
-    /* 핀 아이콘 */
-    .photo-pin::after {
-      content: '📍';
-      position: absolute;
-      top: -25px;
+      bottom: 3vh;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 3rem;
-      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+      z-index: 2;
+      width: 26px;
+      height: 26px;
+      color: #fff;
+      opacity: .85;
+      animation: nudge 2.4s ease-in-out infinite;
+    }
+    @keyframes nudge {
+      0%, 100% { transform: translate(-50%, 0); }
+      50% { transform: translate(-50%, 7px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .chevron { animation: none; }
+      html, .deck { scroll-behavior: auto; }
     }
 
-    @keyframes float {
-
-      0%,
-      100% {
-        transform: translateY(0) rotate(var(--rot, -3deg));
-      }
-
-      50% {
-        transform: translateY(-30px) rotate(var(--rot-mid, 0deg));
-      }
+    /* Product shot: the card itself */
+    .shot {
+      position: relative;
+      z-index: 2;
+      margin-top: 4vh;
+      width: min(360px, 74vw);
+      aspect-ratio: 1;
+      background: #eceae4;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 30px 70px rgba(0, 0, 0, .55);
+    }
+    .shot-head { display: flex; align-items: flex-end; justify-content: space-between; }
+    .shot-head b {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 34px; font-weight: 600; letter-spacing: -.03em; line-height: .9; color: #1c1e1c;
+    }
+    .shot-head span { font-size: 10px; font-weight: 500; color: #6a6f68; }
+    .shot-head em { font-style: normal; font-size: 15px; font-weight: 700; color: #1c1e1c; }
+    .shot-grid { flex: 1; display: grid; grid-template-columns: 1.6fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 5px; min-height: 0; }
+    .shot-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .shot-grid img:first-child { grid-row: span 2; }
+    .shot-grid img:last-child { grid-column: span 2; }
+    .shot-low { display: grid; grid-template-columns: 26% 1fr; gap: 12px; align-items: center; border-top: 1px solid #cdc9bf; padding-top: 10px; }
+    .shot-low svg { width: 100%; height: auto; display: block; overflow: hidden; }
+    .shot-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .shot-tags i {
+      font-style: normal; font-size: 9px; font-weight: 600; color: #2f6357;
+      border: 1px solid #b9c4bd; border-radius: 20px; padding: 3px 8px;
     }
 
-    /* 반응형 모바일 */
-    @media (max-width: 768px) {
-      .hero h1 {
-        font-size: 2.2rem;
-      }
-
-      .hero p {
-        font-size: 1.1rem;
-      }
-
-      .photo-pin {
-        width: 120px;
-        height: 150px;
-      }
+    /* Footer */
+    .foot {
+      scroll-snap-align: start;
+      background: #000;
+      color: #a2a2a2;
+      padding: 26px 24px 34px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 26px;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
     }
+    .foot a { color: #a2a2a2; text-decoration: none; }
+    .foot a:hover { color: #fff; }
+    .foot .mark { color: #fff; font-family: 'Montserrat', sans-serif; letter-spacing: .2em; font-weight: 600; }
 
-    /* Landing page conversion layout */
-    header { padding: 16px 7%; }
-    .header-link { color: #286e63; font-size: .9rem; font-weight: 700; text-decoration: none; }
-    .hero { min-height: 760px; padding: 118px 7% 72px; text-align: left; }
-    .hero::after { background: linear-gradient(105deg, rgba(248, 251, 255, .96) 0%, rgba(248, 251, 255, .84) 51%, rgba(248, 251, 255, .45) 100%); }
-    .hero-inner { position: relative; z-index: 10; display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, .88fr); align-items: center; gap: clamp(32px, 7vw, 110px); width: min(1120px, 100%); margin: auto; }
-    .hero-content { max-width: 580px; }
-    .eyebrow { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 18px; padding: 7px 12px; border: 1px solid rgba(45, 204, 173, .25); border-radius: 999px; background: rgba(255, 255, 255, .75); color: #247f6d; font-size: .82rem; font-weight: 700; }
-    .hero h1 { font-size: clamp(2.5rem, 5vw, 4.25rem); margin-bottom: 18px; letter-spacing: -.055em; }
-    .hero p { max-width: 540px; margin-bottom: 28px; font-size: clamp(1rem, 1.5vw, 1.2rem); }
-    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-    .cta-button { padding: 15px 28px; font-size: 1rem; }
-    .secondary-cta { display: inline-block; padding: 14px 20px; border: 1px solid rgba(40, 110, 99, .25); border-radius: 50px; background: rgba(255, 255, 255, .7); color: #286e63; font-size: .95rem; font-weight: 700; text-decoration: none; transition: .2s ease; }
-    .secondary-cta:hover { transform: translateY(-2px); background: #fff; }
-    .privacy-note { margin-top: 20px; color: #61726f; font-size: .8rem; }
-    .pins-container { display: none; }
+    :where(a, button):focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    .slide[data-tone="light"] :where(a, button):focus-visible { outline-color: var(--ink); }
 
-    .memory-map-preview { position: relative; min-height: 500px; border: 10px solid rgba(255, 255, 255, .86); border-radius: 30px; overflow: hidden; box-shadow: 0 25px 70px rgba(20, 75, 65, .22); background: #dbeeea; transform: rotate(2deg); }
-    .memory-map-preview::before { content: ''; position: absolute; inset: 0; opacity: .55; background-image: linear-gradient(25deg, transparent 45%, rgba(87, 173, 158, .42) 46%, rgba(87, 173, 158, .42) 49%, transparent 50%), linear-gradient(110deg, transparent 41%, rgba(255,255,255,.9) 42%, rgba(255,255,255,.9) 46%, transparent 47%); background-size: 170px 130px, 210px 180px; }
-    .preview-route { position: absolute; width: 76%; height: 56%; top: 18%; left: 12%; border: 3px dashed #2dccad; border-color: #2dccad transparent transparent #2dccad; border-radius: 50%; transform: rotate(-18deg); opacity: .85; }
-    .map-pin { position: absolute; display: grid; place-items: center; width: 38px; height: 38px; border: 3px solid #fff; border-radius: 50% 50% 50% 0; color: #fff; font-size: 16px; box-shadow: 0 6px 16px rgba(18, 69, 61, .25); transform: rotate(-45deg); }
-    .map-pin span { transform: rotate(45deg); }
-    .map-pin.one { top: 25%; left: 22%; background: #f58b72; }.map-pin.two { top: 50%; right: 22%; background: #2dccad; }.map-pin.three { bottom: 17%; left: 41%; background: #5b82e3; }
-    .preview-card { position: absolute; right: 18px; bottom: 18px; display: flex; width: min(285px, 78%); gap: 11px; padding: 11px; border: 1px solid rgba(255,255,255,.8); border-radius: 16px; background: rgba(255,255,255,.94); box-shadow: 0 10px 24px rgba(25, 75, 67, .2); transform: rotate(-2deg); }
-    .preview-card img { width: 66px; height: 66px; border-radius: 10px; object-fit: cover; }.preview-card strong { display: block; margin: 1px 0 4px; font-size: .9rem; }.preview-card p { margin: 0; color: #6a7673; font-size: .72rem; line-height: 1.4; }.preview-card-tags { display: flex; gap: 4px; margin-top: 5px; }.preview-card-tags span { padding: 3px 5px; border-radius: 5px; background: #e4f8f3; color: #23836f; font-size: .62rem; }
-    .trip-label { position: absolute; top: 21px; left: 20px; padding: 9px 12px; border-radius: 12px; background: rgba(17, 69, 60, .86); color: #fff; font-size: .8rem; font-weight: 700; }
-
-    .home-section { width: min(1120px, 86%); margin: 0 auto; padding: 100px 0; }
-    .section-heading { max-width: 580px; margin-bottom: 34px; }.section-heading .eyebrow { margin-bottom: 12px; }.section-heading h2 { margin-bottom: 12px; color: #193b36; font-size: clamp(1.9rem, 3.3vw, 2.7rem); letter-spacing: -.045em; word-break: keep-all; }.section-heading p { color: #64736f; line-height: 1.7; word-break: keep-all; }
-    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }.feature-card { min-height: 225px; padding: 27px; border: 1px solid #e1eeeb; border-radius: 20px; background: #fff; box-shadow: 0 10px 30px rgba(38, 96, 84, .06); }.feature-icon { display: grid; place-items: center; width: 46px; height: 46px; margin-bottom: 22px; border-radius: 14px; background: #e5f8f3; font-size: 22px; }.feature-card h3 { margin-bottom: 9px; color: #23453f; font-size: 1.1rem; }.feature-card p { color: #6b7976; font-size: .9rem; line-height: 1.65; word-break: keep-all; }
-    .moment-section { padding-top: 20px; }.moment-panel { display: grid; grid-template-columns: 1.05fr .95fr; overflow: hidden; border-radius: 26px; background: #e6f5f0; }.moment-copy { padding: clamp(32px, 5vw, 65px); }.moment-copy h2 { margin-bottom: 15px; color: #1d453d; font-size: clamp(1.7rem, 3vw, 2.4rem); letter-spacing: -.04em; }.moment-copy p { color: #55726b; line-height: 1.75; word-break: keep-all; }.moment-list { display: grid; align-content: center; gap: 10px; padding: 30px; background: linear-gradient(145deg, #2dccad, #1c8c7d); }.moment-list span { padding: 13px 15px; border: 1px solid rgba(255,255,255,.28); border-radius: 12px; background: rgba(255,255,255,.12); color: #fff; font-size: .9rem; }
-    .privacy-bar { margin: 0 auto 65px; width: min(1120px, 86%); padding: 17px 22px; border-radius: 16px; background: #f0f8f6; color: #487168; font-size: .88rem; text-align: center; }.privacy-bar strong { color: #247d6c; }
-    @media (max-width: 780px) { header { padding: 14px 7%; }.hero { min-height: auto; padding: 112px 7% 65px; }.hero-inner, .moment-panel { grid-template-columns: 1fr; }.hero-content { text-align: center; }.hero-actions { justify-content: center; }.memory-map-preview { min-height: 390px; margin: 10px 5% 0; transform: rotate(0); }.feature-grid { grid-template-columns: 1fr; }.home-section { padding: 68px 0; }.moment-list { padding: 22px; }.privacy-note { margin-left: auto; margin-right: auto; }.preview-card { right: 12px; bottom: 12px; } }
-
-    /* Minimal editorial product landing */
-    body { background: #fff; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Noto Sans KR", sans-serif; }
-    header { height: 52px; padding: 0 max(22px, calc((100% - 1120px) / 2)); background: rgba(255, 255, 255, .78); box-shadow: none; border-bottom: 1px solid rgba(0, 0, 0, .06); }
-    .logo { color: #1d1d1f; font-size: 1.08rem; letter-spacing: -.03em; }.header-link { color: #0066cc; font-size: .82rem; font-weight: 500; }
-    .hero { min-height: auto; padding: 132px 22px 0; background: #f5f5f7; text-align: center; }.hero::after, #map-bg { display: none; }.hero-inner { display: flex; flex-direction: column; gap: 46px; width: min(1120px, 100%); }.hero-content { max-width: 760px; text-align: center; }.eyebrow { margin-bottom: 14px; padding: 0; border: 0; background: transparent; color: #6e6e73; font-size: 1rem; font-weight: 500; }
-    .hero h1 { margin-bottom: 16px; color: #1d1d1f; font-size: clamp(3rem, 6.1vw, 5.2rem); line-height: 1.04; letter-spacing: -.075em; text-shadow: none; }.hero h1 span { color: #1d1d1f; }.hero p { max-width: 670px; margin: 0 auto 25px; color: #6e6e73; font-size: clamp(1.08rem, 1.75vw, 1.45rem); font-weight: 400; line-height: 1.45; }
-    .hero-actions { justify-content: center; gap: 18px; }.cta-button, .secondary-cta { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: #0066cc; font-size: 1.05rem; font-weight: 400; }.cta-button:hover, .secondary-cta:hover { background: transparent; box-shadow: none; color: #0066cc; transform: none; text-decoration: underline; }.cta-button::after, .secondary-cta::after { content: ' ›'; }.privacy-note { margin-top: 22px; color: #86868b; font-size: .78rem; }
-    .memory-map-preview { width: min(960px, 100%); min-height: 500px; margin: 0 auto; border: 1px solid rgba(0, 0, 0, .08); border-bottom: 0; border-radius: 28px 28px 0 0; background: #e8f3ef; box-shadow: 0 -8px 30px rgba(0, 0, 0, .06); transform: none; }.memory-map-preview::before { opacity: .42; }.trip-label { top: 24px; left: 24px; border: 1px solid rgba(0, 0, 0, .08); background: rgba(255, 255, 255, .9); color: #1d1d1f; font-size: .78rem; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 0, 0, .06); }.preview-card { right: 26px; bottom: 25px; border: 1px solid rgba(0, 0, 0, .1); border-radius: 16px; background: rgba(255, 255, 255, .96); box-shadow: 0 10px 25px rgba(0, 0, 0, .12); transform: none; }.preview-card strong { color: #1d1d1f; }.preview-card p { color: #6e6e73; font-size: .72rem; }.preview-card-tags span { background: #f1f5f4; color: #357567; }
-    .home-section { width: min(1200px, 100%); padding: 0 22px 110px; }.home-section:first-of-type { padding-top: 105px; }.section-heading { max-width: 730px; margin: 0 auto 48px; text-align: center; }.section-heading .eyebrow { color: #6e6e73; font-size: .95rem; }.section-heading h2, .moment-copy h2 { color: #1d1d1f; font-size: clamp(2.25rem, 4.3vw, 3.7rem); font-weight: 600; letter-spacing: -.065em; line-height: 1.08; }.section-heading p { color: #6e6e73; font-size: 1.12rem; line-height: 1.5; }
-    .feature-grid { gap: 12px; }.feature-card { min-height: 285px; padding: 34px 30px; border: 0; border-radius: 0; background: #f5f5f7; box-shadow: none; text-align: center; }.feature-card:nth-child(2) { background: #eef7f5; }.feature-card:nth-child(3) { background: #f1f4fb; }.feature-icon { width: auto; height: auto; margin-bottom: 20px; border-radius: 0; background: transparent; font-size: 30px; }.feature-card h3 { margin-bottom: 10px; color: #1d1d1f; font-size: 1.34rem; letter-spacing: -.04em; }.feature-card p { color: #6e6e73; font-size: .96rem; line-height: 1.55; }
-    .moment-section { width: 100%; padding: 0 0 110px; }.moment-panel { grid-template-columns: 1fr 1fr; max-width: 1200px; margin: 0 auto; border-radius: 0; background: #1d1d1f; }.moment-copy { padding: clamp(42px, 6vw, 86px); background: #1d1d1f; }.moment-copy h2 { color: #f5f5f7; }.moment-copy p { color: #a1a1a6; font-size: 1.05rem; }.moment-list { padding: clamp(34px, 5vw, 70px); background: #252527; }.moment-list span { padding: 16px 17px; border: 0; border-bottom: 1px solid rgba(255, 255, 255, .16); border-radius: 0; background: transparent; color: #f5f5f7; font-size: .98rem; }.privacy-bar { width: 100%; margin: 0; padding: 26px 22px 52px; border-radius: 0; background: #fff; color: #86868b; font-size: .83rem; }.privacy-bar strong { color: #515154; }
-    @media (max-width: 780px) { header { padding: 0 22px; }.hero { padding: 104px 18px 0; }.hero-inner { gap: 38px; }.hero h1 { font-size: clamp(2.65rem, 13vw, 4rem); }.hero p { font-size: 1.08rem; }.memory-map-preview { min-height: 390px; border-radius: 20px 20px 0 0; }.home-section, .home-section:first-of-type { padding: 74px 18px; }.feature-grid { grid-template-columns: 1fr; }.feature-card { min-height: 220px; }.moment-section { padding: 0; }.moment-panel { grid-template-columns: 1fr; }.moment-copy, .moment-list { padding: 42px 28px; }.preview-card { right: 14px; bottom: 14px; } }
-
-    /* Use Maplog's own visual assets in the product preview. */
-    .logo { display: flex; align-items: center; gap: 7px; }.logo img { width: 23px; height: 23px; border-radius: 6px; object-fit: cover; }
-    .memory-map-preview { background: #102120 url('/gyeongju_map_bg.png') center / cover; }.memory-map-preview::before { opacity: .34; background: linear-gradient(135deg, rgba(17, 37, 36, .2), rgba(45, 204, 173, .14)); }
-    .trip-label { display: flex; align-items: center; gap: 7px; }.trip-label img { width: 19px; height: 19px; border-radius: 5px; object-fit: cover; }
-    .map-pin { display: block; width: 42px; height: 64px; border: 0; border-radius: 0; background: transparent !important; box-shadow: none; transform: none; }.map-pin img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 7px 8px rgba(0, 0, 0, .28)); }
-    .feature-media { height: 112px; margin: -10px -10px 25px; overflow: hidden; border-radius: 12px; background: #e8eeec; }.feature-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease; }.feature-card:hover .feature-media img { transform: scale(1.05); }
-    .feature-card { padding-top: 26px; }.feature-icon { display: none; }
-    @media (max-width: 780px) { .feature-media { height: 145px; margin-bottom: 20px; }.map-pin { width: 35px; height: 54px; } }
-
-    /* ── Apple-style narrative landing ───────────────────────────── */
-    :root { --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b; --tint: #0066cc; --panel: #f5f5f7; --hair: rgba(0, 0, 0, .1); }
-
-    .nav-links { display: flex; align-items: center; gap: 22px; }
-    .nav-links a { color: var(--ink); font-size: .82rem; font-weight: 400; text-decoration: none; opacity: .85; }
-    .nav-links a:hover { opacity: 1; }
-    .nav-links a.nav-cta { color: var(--tint); }
-
-    .lede { display: block; color: var(--ink-3); }
-
-    /* Highlights */
-    .highlights { padding: 96px 22px 34px; background: #fff; }
-    .highlights-inner { width: min(1120px, 100%); margin: 0 auto; }
-    .highlights h2 { margin-bottom: 40px; color: var(--ink); font-size: clamp(1.6rem, 2.6vw, 2.1rem); font-weight: 600; letter-spacing: -.045em; }
-    .highlight-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 34px; }
-    .highlight-item { padding-top: 20px; border-top: 1px solid var(--hair); }
-    .highlight-item strong { display: block; margin-bottom: 7px; color: var(--ink); font-size: clamp(1.5rem, 2.3vw, 2rem); font-weight: 600; letter-spacing: -.05em; }
-    .highlight-item span { color: var(--ink-2); font-size: .92rem; line-height: 1.5; word-break: keep-all; }
-
-    /* Showcase */
-    .showcase { width: min(1200px, 100%); margin: 0 auto; padding: 0 22px; }
-    .showcase-panel { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: clamp(30px, 5vw, 76px); padding: 96px 0; border-bottom: 1px solid var(--hair); }
-    .showcase-panel:last-child { border-bottom: 0; }
-    .showcase-panel.flip .showcase-copy { order: 2; }
-    .showcase-copy .kicker { margin-bottom: 13px; color: var(--tint); font-size: .87rem; font-weight: 600; letter-spacing: .01em; }
-    .showcase-copy h3 { margin-bottom: 17px; color: var(--ink); font-size: clamp(1.9rem, 3.5vw, 3rem); font-weight: 600; line-height: 1.1; letter-spacing: -.06em; word-break: keep-all; }
-    .showcase-copy p { color: var(--ink-2); font-size: clamp(1rem, 1.35vw, 1.14rem); line-height: 1.6; word-break: keep-all; }
-    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
-    .chip-row span { padding: 7px 13px; border-radius: 999px; background: var(--panel); color: #4a4a4f; font-size: .84rem; font-weight: 500; }
-
-    .showcase-visual { position: relative; overflow: hidden; min-height: 370px; border-radius: 22px; background: var(--panel); }
-    .showcase-visual img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .visual-note { position: absolute; left: 20px; bottom: 20px; display: flex; align-items: center; gap: 9px; padding: 11px 14px; border-radius: 14px; background: rgba(255, 255, 255, .95); box-shadow: 0 8px 22px rgba(0, 0, 0, .14); }
-    .visual-note img { position: static; width: 21px; height: 21px; border-radius: 6px; }
-    .visual-note strong { color: var(--ink); font-size: .85rem; }
-    .visual-note em { color: var(--ink-2); font-size: .74rem; font-style: normal; }
-
-    /* Wrapped card mock */
-    .wrapped-mock { display: grid; grid-template-rows: auto 1fr auto; gap: 13px; padding: 26px; border-radius: 22px; background: #0b0b0d; }
-    .wrapped-mock .wm-title { color: #f5f5f7; font-size: .78rem; font-weight: 700; letter-spacing: .16em; }
-    .wm-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .wm-stat { padding: 16px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 14px; background: rgba(255, 255, 255, .05); }
-    .wm-stat b { display: block; color: #fff; font-size: 1.6rem; font-weight: 600; letter-spacing: -.04em; }
-    .wm-stat span { color: #86868b; font-size: .68rem; font-weight: 600; letter-spacing: .09em; }
-    .wm-bars { display: flex; align-items: flex-end; gap: 5px; height: 54px; }
-    .wm-bars i { flex: 1; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, #2dccad, #1c8c7d); }
-
-    /* Privacy panel */
-    .assure { padding: 104px 22px; background: var(--ink); }
-    .assure-inner { width: min(820px, 100%); margin: 0 auto; text-align: center; }
-    .assure h2 { margin-bottom: 20px; color: #f5f5f7; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 600; line-height: 1.1; letter-spacing: -.06em; word-break: keep-all; }
-    .assure p { color: #a1a1a6; font-size: clamp(1rem, 1.5vw, 1.16rem); line-height: 1.65; word-break: keep-all; }
-    .assure p + p { margin-top: 14px; }
-    .assure-points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 44px; text-align: left; }
-    .assure-points div { padding: 20px; border-radius: 16px; background: #252527; }
-    .assure-points strong { display: block; margin-bottom: 6px; color: #f5f5f7; font-size: .96rem; }
-    .assure-points span { color: #a1a1a6; font-size: .84rem; line-height: 1.55; word-break: keep-all; }
-
-    /* Spec grid */
-    .specs { width: min(1120px, 100%); margin: 0 auto; padding: 104px 22px; }
-    .specs h2 { margin-bottom: 40px; color: var(--ink); font-size: clamp(1.9rem, 3.4vw, 2.7rem); font-weight: 600; letter-spacing: -.055em; }
-    .spec-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 34px; }
-    .spec-grid div { padding: 22px 0; border-top: 1px solid var(--hair); }
-    .spec-grid strong { display: block; margin-bottom: 5px; color: var(--ink); font-size: .98rem; font-weight: 600; }
-    .spec-grid span { color: var(--ink-2); font-size: .88rem; line-height: 1.5; word-break: keep-all; }
-
-    /* Closing */
-    .closing { padding: 118px 22px 128px; background: var(--panel); text-align: center; }
-    .closing h2 { margin-bottom: 15px; color: var(--ink); font-size: clamp(2.2rem, 4.6vw, 3.6rem); font-weight: 600; line-height: 1.08; letter-spacing: -.065em; word-break: keep-all; }
-    .closing p { margin-bottom: 26px; color: var(--ink-2); font-size: clamp(1.02rem, 1.6vw, 1.24rem); word-break: keep-all; }
-    .closing .cta-button { font-size: 1.15rem; }
-
-    .site-footer { padding: 34px 22px 46px; background: #fff; border-top: 1px solid var(--hair); color: var(--ink-3); font-size: .78rem; line-height: 1.7; text-align: center; }
-    .site-footer a { color: var(--ink-3); text-decoration: none; }
-    .site-footer a:hover { text-decoration: underline; }
-
-    .hero .privacy-note { max-width: 460px; margin-top: 26px; margin-left: auto; margin-right: auto; }
-
-    /* Hero preview: the real map UI, not an illustration */
-    .memory-map-preview { background: #e8edea; }
-    .memory-map-preview::before { content: none; }
-    #hero-map { position: absolute; inset: 0; background: #e8edea; }
-    .leaflet-container { background: #e8edea; }
-    .hero-map-shade { position: absolute; inset: 0; z-index: 500; pointer-events: none; background: linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgba(255, 255, 255, 0) 30%, rgba(0, 0, 0, .1) 100%); }
-    .hero-pin svg { display: block; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .4)); }
-
-    .trip-label { z-index: 600; }
-    .preview-card { z-index: 600; width: min(310px, 82%); align-items: flex-start; }
-    .preview-card img { width: 72px; height: 72px; flex: none; }
-    .preview-card-body { min-width: 0; }
-    .preview-stars { margin-bottom: 3px; color: #f59e0b; font-size: .74rem; letter-spacing: 1px; }
-    .preview-stars i { color: #cbd5e1; font-style: normal; }
-    .preview-card-tags span { padding: 3px 7px; border-radius: 6px; background: #eef2f7; color: #475569; font-size: .64rem; font-weight: 600; }
-
-    @media (max-width: 780px) {
-      .nav-links { gap: 15px; }
-      .nav-links a:not(.nav-cta) { display: none; }
-      .highlights { padding: 66px 18px 20px; }
-      .highlight-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
-      .showcase { padding: 0 18px; }
-      .showcase-panel { grid-template-columns: 1fr; gap: 28px; padding: 64px 0; }
-      .showcase-panel.flip .showcase-copy { order: 0; }
-      .showcase-visual { min-height: 260px; }
-      .assure { padding: 74px 18px; }
-      .assure-points { grid-template-columns: 1fr; margin-top: 32px; }
-      .specs { padding: 74px 18px; }
-      .spec-grid { grid-template-columns: 1fr; }
-      .closing { padding: 82px 18px 92px; }
+    @media (max-width: 640px) {
+      .copy { margin-top: 12vh; }
+      .actions { flex-direction: column; align-items: center; margin-bottom: 6vh; }
+      /* Stacked, the flex-basis would be read as a height and stretch each
+         button to 200px tall. */
+      .btn { flex: 0 0 auto; width: 100%; max-width: 320px; min-width: 0; }
+      .bar nav a:not(.nav-primary) { display: none; }
     }
   </style>
 </head>
 
 <body>
 
-  <header>
-    <div class="logo"><img src="/Maplog_Favicon.png" alt="">Maplog</div>
-    <nav class="nav-links">
-      <a href="#features">기능</a>
+  <header class="bar">
+    <a class="brand" href="/"><img src="/Maplog_Favicon.png" alt="">MAPLOG</a>
+    <nav>
+      <a href="#record">기록</a>
+      <a href="#card">카드</a>
       <a href="#privacy">프라이버시</a>
-      <a class="nav-cta" href="/map.html">내 지도 열기</a>
+      <a class="nav-primary" href="/map.html">내 지도</a>
     </nav>
   </header>
 
-  <section class="hero">
-    <div class="hero-inner">
-      <div class="hero-content">
-        <div class="eyebrow">Maplog</div>
-        <h1>다녀온 모든 곳이,<br><span>하나의 지도가 됩니다.</span></h1>
-        <p>사진, 메모, 별점, 방문 날짜.<span class="lede">흩어져 있던 그날의 조각을 지도 위에 모아 두세요.</span></p>
-        <div class="hero-actions">
-          <a href="/map.html" class="cta-button">내 지도 만들기</a>
-          <a href="#features" class="secondary-cta">무엇을 할 수 있나요</a>
-        </div>
-        <p class="privacy-note">지도는 로그인 없이 둘러볼 수 있어요. 내 기록은 기본적으로 나만 볼 수 있습니다.</p>
+  <main class="deck">
+
+    <!-- 1 · Hero -->
+    <section class="slide" data-tone="dark" style="background-image:url('/image2.webp')">
+      <div class="copy">
+        <h2>지도 위에 남는 하루</h2>
+        <p>사진 한 장이면 기록이 됩니다.</p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-solid" href="/map.html">내 지도 만들기</a>
+        <a class="btn btn-ghost" href="#record">어떻게 되나요</a>
+      </div>
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" aria-hidden="true">
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </section>
+
+    <!-- 2 · EXIF -->
+    <section class="slide" id="record" data-tone="dark" style="background-image:url('/image3.webp')">
+      <div class="copy">
+        <h2>사진만 올리면 됩니다</h2>
+        <p>어디서 언제 찍었는지는 사진이 이미 알고 있습니다.<br>위치와 방문 날짜, 주소까지 알아서 채워집니다.</p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-solid" href="/map.html?action=photo">사진으로 기록하기</a>
+        <a class="btn btn-ghost" href="#organise">계속 보기</a>
+      </div>
+    </section>
+
+    <!-- 3 · Collections -->
+    <section class="slide" id="organise" data-tone="dark" style="background-image:url('/image4.webp')">
+      <div class="copy">
+        <h2>흩어진 하루를<br>한 여행으로</h2>
+        <p>여행 컬렉션으로 묶고 태그로 나눕니다.<br>색상 핀에는 직접 이름을 붙일 수 있어요.</p>
+        <a class="under" href="/map.html">내 지도에서 만들기</a>
+      </div>
+      <div class="actions">
+        <a class="btn btn-solid" href="/map.html">컬렉션 만들기</a>
+        <a class="btn btn-ghost" href="#card">카드 보기</a>
+      </div>
+    </section>
+
+    <!-- 4 · The card -->
+    <section class="slide" id="card" data-tone="plain">
+      <div class="copy">
+        <h2>한 장으로 남기고,<br>그대로 올립니다</h2>
+        <p>사진 포스터와 콜라주, 정사각형과 스토리 크기.</p>
       </div>
 
-      <div class="memory-map-preview" aria-label="Maplog 지도 화면 미리보기">
-        <div id="hero-map" aria-hidden="true"></div>
-        <div class="hero-map-shade" aria-hidden="true"></div>
-        <div class="trip-label"><img src="/Maplog_Favicon.png" alt="">✈ 2026 겨울 나들이</div>
-        <div class="preview-card">
-          <img src="/image1.webp" alt="정원과 연못이 있는 카페 기록 예시">
-          <div class="preview-card-body">
-            <strong>정원이 있는 카페</strong>
-            <div class="preview-stars">★★★★<i>★</i></div>
-            <p>해 질 무렵 연못 앞자리가 제일 좋았다</p>
-            <div class="preview-card-tags"><span># 카페</span><span># 사진명소</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </section>
-
-  <section class="highlights">
-    <div class="highlights-inner">
-      <h2>먼저, 핵심만.</h2>
-      <div class="highlight-grid">
-        <div class="highlight-item">
-          <strong>사진이 대신 입력</strong>
-          <span>사진에 담긴 위치와 촬영 날짜를 알아서 채웁니다.</span>
-        </div>
-        <div class="highlight-item">
-          <strong>태그 20종+</strong>
-          <span>맛집부터 숨은명소까지, 골라서 붙이거나 직접 씁니다.</span>
-        </div>
-        <div class="highlight-item">
-          <strong>지도 4가지</strong>
-          <span>기본, 다크, 라이트, 위성 중에 고르세요.</span>
-        </div>
-        <div class="highlight-item">
-          <strong>연말 결산 카드</strong>
-          <span>한 해의 이동을 이미지 한 장으로 저장합니다.</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="features" class="showcase">
-
-    <div class="showcase-panel">
-      <div class="showcase-copy">
-        <p class="kicker">기록</p>
-        <h3>장소를 누르고,<br>그날을 적습니다.</h3>
-        <p>사진만 올리면 됩니다. 사진에 담긴 위치와 촬영 날짜를 읽어 장소와 방문일을 자동으로 채우고, 주소까지 찾아 넣습니다. 남는 건 당신의 이야기뿐이에요.</p>
-        <div class="chip-row">
-          <span>사진에서 위치·날짜 자동</span><span>사진 여러 장</span><span>메모</span><span>별점</span><span>장소 검색</span>
-        </div>
-      </div>
-      <div class="showcase-visual">
-        <img src="/image2.webp" alt="통유리 너머 산이 보이는 카페 내부 기록 예시">
-        <div class="visual-note">
-          <img src="/pin.png" alt="">
+      <div class="shot" aria-label="Maplog 공유 카드 예시">
+        <div class="shot-head">
           <div>
-            <strong>통유리 창가 자리</strong><br>
-            <em>★★★★★ · 2026. 1. 18.</em>
+            <b>2026.01</b>
+            <span style="display:block;margin-top:5px">울산 · 양산 · 김해 · 부산</span>
+          </div>
+          <div style="text-align:right">
+            <em>15곳</em>
+            <span style="display:block">★ 4.5 평균</span>
           </div>
         </div>
-      </div>
-    </div>
-
-    <div class="showcase-panel flip">
-      <div class="showcase-copy">
-        <p class="kicker">정리</p>
-        <h3>여행별로 묶고,<br>취향별로 걸러냅니다.</h3>
-        <p>한 번의 여행을 컬렉션 하나로 묶고, 태그로 성격을 나눕니다. 핀 색깔에는 직접 이름을 붙일 수 있어요. 사이드바에서 컬렉션과 태그, 색상과 기간으로 원하는 기억만 곧바로 꺼내 보세요.</p>
-        <div class="chip-row">
-          <span>여행 컬렉션</span><span>태그 필터</span><span>색상 핀</span><span>기간 필터</span><span>이름 붙이는 핀</span>
+        <div class="shot-grid">
+          <img src="/image1.webp" alt="">
+          <img src="/image2.webp" alt="">
+          <img src="/image3.webp" alt="">
+          <img src="/image4.webp" alt="">
+        </div>
+        <div class="shot-low">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <g fill="#d3d3c6" stroke="#a4a897" stroke-width=".9"><path d="M-60.5 -96.4L-59.0 -97.5L-59.0 -99.0L-59.0 -103.9L-55.0 -107.3L-49.5 -114.3L-46.7 -118.1L-43.5 -121.7L-39.9 -124.1L-36.4 -125.2L-30.7 -125.7L-20.0 -125.3L-17.9 -125.7L-10.4 -126.0L-8.7 -125.4L-3.3 -125.0L2.8 -125.5L5.8 -126.5L8.7 -128.2L11.1 -131.4L13.5 -137.3L16.3 -141.9L17.9 -142.8L28.9 -118.1L39.3 -102.3L48.4 -90.7L61.1 -68.6L64.9 -56.7L65.2 -49.4L67.3 -39.3L65.5 -33.5L66.0 -24.4L65.2 -19.7L63.7 -16.2L63.6 -9.6L64.1 -6.0L64.2 -1.3L65.2 0.5L66.7 1.1L68.9 -0.6L71.8 -1.3L71.3 4.4L67.8 18.7L64.9 29.1L60.8 38.2L55.6 46.5L49.5 49.7L45.1 51.0L36.9 51.4L29.9 49.9L24.1 51.0L21.6 52.7L19.8 55.7L21.1 60.2L21.0 63.7L18.4 63.4L13.4 61.4L7.9 61.2L5.3 60.1L2.7 55.3L-0.1 55.5L-4.8 58.4L-11.9 59.0L-14.3 60.6L-15.1 62.6L-14.2 65.1L-10.6 68.4L-11.7 71.9L-15.5 73.6L-18.5 69.4L-20.5 65.3L-22.6 65.1L-25.8 66.3L-26.5 70.6L-24.9 73.7L-22.4 77.1L-26.0 81.1L-26.8 84.0L-29.4 86.0L-36.2 81.5L-35.2 78.3L-32.3 75.1L-31.8 71.9L-32.8 70.0L-42.7 78.2L-48.7 87.4L-51.7 86.7L-53.2 84.3L-55.0 83.3L-61.5 89.4L-62.8 94.0L-65.0 94.2L-66.2 92.2L-66.2 87.9L-67.3 84.4L-73.9 79.0L-77.0 74.5L-75.4 71.9L-69.9 73.3L-65.3 73.1L-66.3 70.9L-67.8 69.9L-64.7 68.7L-62.3 66.2L-64.4 65.5L-67.4 66.9L-70.0 66.3L-71.0 60.2L-74.3 54.0L-75.9 48.0L-72.8 44.6L-71.2 39.2L-68.3 31.5L-66.8 28.9L-62.8 27.1L-61.3 25.1L-63.6 24.0L-67.1 23.2L-67.0 20.9L-64.5 19.8L-61.9 17.3L-56.8 14.2L-55.1 8.6L-56.6 7.1L-59.8 5.8L-59.0 2.9L-57.7 0.8L-58.2 -0.6L-62.1 -4.2L-64.7 -7.7L-63.9 -11.5L-64.5 -17.2L-64.2 -22.1L-64.4 -24.7L-66.2 -30.7L-67.0 -36.7L-69.6 -35.7L-71.5 -34.3L-78.6 -36.4L-80.9 -36.5L-81.7 -41.0L-79.3 -46.4L-73.1 -51.2L-69.7 -51.8L-67.1 -53.9L-62.9 -54.5L-58.1 -51.3L-53.7 -50.6L-51.3 -45.0L-49.8 -43.8L-49.5 -45.9L-45.9 -48.3L-45.1 -50.1L-45.7 -51.2L-49.8 -52.1L-53.5 -59.1L-54.0 -62.2L-55.5 -64.1L-53.4 -69.7L-57.6 -76.1L-59.7 -78.1L-59.4 -83.7L-61.6 -87.5L-62.9 -89.5L-63.6 -92.9L-62.9 -94.4L-61.0 -95.0L-60.5 -96.4Z"/><path d="M4.0 67.2L3.5 72.6L0.2 72.8L-1.5 69.4L-3.6 71.0L-4.6 71.1L-6.2 66.8L-6.6 63.4L-2.8 60.9L-0.6 62.4L2.7 63.2L4.0 67.2Z"/><path d="M63.4 92.0L62.4 94.7L59.4 92.9L58.1 91.2L60.8 82.9L60.5 79.6L60.7 78.1L66.3 73.8L67.3 74.6L67.6 75.8L67.1 77.7L67.5 81.8L63.1 88.6L63.4 92.0Z"/><path d="M143.9 133.4L149.9 135.0L152.5 135.1L154.8 134.4L158.5 132.2L162.2 130.6L165.0 131.5L167.2 133.4L168.5 136.0L167.9 138.9L163.7 144.9L160.1 151.4L168.2 152.7L176.3 152.6L174.4 156.6L174.2 160.0L176.6 161.7L178.7 163.9L178.1 165.9L176.9 167.9L181.3 171.0L181.0 173.0L179.9 175.1L168.8 188.9L165.6 195.9L163.5 203.6L161.4 209.3L159.9 215.1L158.6 221.4L156.7 227.9L157.3 233.7L156.7 239.6L151.2 254.3L147.1 254.0L142.3 252.2L139.2 252.5L137.6 255.8L140.3 262.5L131.6 270.4L121.9 275.7L121.7 273.3L122.7 271.3L124.1 269.8L125.1 268.0L126.6 261.7L125.8 255.5L122.9 247.6L122.7 244.8L124.6 243.7L126.1 243.3L126.7 242.2L126.9 239.6L125.9 237.6L123.2 237.1L120.4 237.0L118.6 239.9L116.0 245.6L114.8 251.2L115.2 254.3L116.4 257.1L119.9 261.8L119.0 264.6L117.5 266.7L105.0 261.9L102.3 261.5L100.0 260.5L97.6 254.1L102.8 252.5L104.2 251.8L104.7 249.7L105.5 243.5L103.1 238.2L101.1 236.4L99.4 234.2L100.5 229.8L99.9 224.3L99.7 216.5L100.7 215.2L105.4 213.7L108.8 209.5L111.8 204.8L116.2 196.5L119.8 187.5L116.4 187.0L113.5 185.4L116.5 181.1L115.6 175.8L110.9 169.2L108.1 161.4L103.9 158.0L101.6 156.8L98.9 158.6L96.6 160.8L98.7 165.8L98.6 170.2L98.9 174.7L101.0 174.9L103.6 173.9L105.7 174.6L106.8 176.9L107.1 180.0L106.3 182.9L104.4 184.4L102.0 184.3L99.7 182.6L97.7 180.4L93.4 179.1L88.8 181.8L84.3 187.3L80.6 190.1L82.4 186.1L83.2 181.6L81.4 178.5L77.0 173.4L76.0 170.4L75.7 166.8L76.5 163.3L81.1 167.4L83.3 172.4L86.6 174.6L90.6 174.7L87.5 167.2L86.4 165.3L81.9 161.9L75.9 156.3L72.2 153.5L73.5 147.6L75.7 146.5L77.7 146.7L84.0 148.8L84.6 145.9L83.7 144.4L83.2 142.4L87.4 140.0L94.2 137.9L95.6 136.8L96.9 134.7L98.6 133.7L103.4 133.7L107.5 131.7L110.7 126.1L111.5 123.2L112.8 120.6L121.1 116.2L123.2 115.5L128.7 116.1L133.9 118.6L136.5 123.8L138.6 129.6L143.9 133.4Z"/><path d="M596.1 -294.0L597.9 -292.9L606.3 -295.7L604.7 -287.3L603.9 -278.8L604.5 -264.7L605.2 -258.3L606.6 -252.1L610.2 -247.7L614.9 -244.5L621.7 -234.5L625.4 -222.2L628.0 -216.2L629.8 -209.9L630.4 -207.0L630.4 -204.1L629.9 -200.2L630.6 -197.1L629.8 -187.1L626.7 -175.5L626.4 -169.6L623.8 -168.4L622.2 -165.7L620.7 -164.4L619.3 -163.5L617.0 -163.2L615.5 -162.1L614.9 -159.0L613.9 -156.0L612.0 -153.4L610.5 -150.4L609.2 -143.2L608.7 -135.9L606.9 -130.7L602.4 -129.4L597.2 -129.5L590.7 -127.1L589.3 -125.7L584.1 -116.7L582.7 -111.3L582.7 -105.7L584.1 -98.7L586.1 -91.9L587.5 -79.2L585.9 -59.8L584.4 -53.6L581.2 -49.4L578.6 -47.5L576.5 -45.1L573.7 -38.8L569.0 -26.2L568.7 -22.9L568.7 -19.7L567.4 -15.4L566.6 -11.2L567.4 -6.3L568.9 -1.7L575.0 10.0L577.5 13.5L580.2 16.7L569.7 20.1L567.8 21.8L561.4 28.4L559.5 34.8L559.7 41.8L558.5 44.4L556.9 46.6L555.0 48.0L548.0 51.3L543.5 54.4L539.1 59.4L537.3 62.1L533.9 61.2L531.8 58.9L533.7 55.9L533.3 52.6L534.2 43.7L533.1 40.2L536.7 37.5L538.3 33.2L542.2 29.9L544.8 26.8L545.2 24.3L542.8 21.7L540.4 19.8L536.8 19.8L533.4 20.3L531.3 22.9L530.5 26.3L530.7 27.9L530.3 29.3L525.2 34.0L525.8 38.9L527.4 41.4L529.4 42.7L528.7 44.3L526.3 48.3L524.5 48.7L521.3 43.1L517.2 40.1L512.2 40.1L507.2 41.2L503.1 45.0L501.8 48.0L501.0 51.2L501.3 58.9L499.7 65.4L496.7 71.0L495.0 73.1L491.3 76.9L488.6 77.4L486.6 75.7L485.2 73.0L487.1 63.4L486.9 57.9L491.5 55.2L487.7 51.3L483.2 49.7L476.9 51.7L475.1 54.1L473.8 57.3L470.4 61.2L466.5 64.9L462.3 71.2L459.4 78.8L450.0 76.3L444.8 75.7L439.6 75.9L430.4 75.0L420.2 76.6L408.7 79.4L409.4 77.3L418.9 72.8L419.2 71.5L418.3 69.0L416.0 68.9L410.3 69.8L407.4 69.4L406.1 66.7L404.2 65.6L403.0 66.7L403.4 71.9L401.9 72.6L400.1 71.2L400.8 67.2L399.5 61.4L399.3 57.7L401.3 54.6L399.3 53.3L397.0 53.7L394.3 55.3L392.0 57.4L386.8 68.1L384.9 74.2L388.6 79.1L398.8 86.0L400.4 87.6L400.6 90.6L399.3 93.7L396.6 95.1L385.4 97.4L375.8 101.8L372.9 106.3L364.2 123.7L357.2 135.7L347.2 139.8L336.3 136.0L333.7 131.9L331.5 126.8L327.4 122.2L323.8 117.1L321.7 111.1L322.1 101.5L320.4 95.7L321.9 94.1L327.9 90.6L329.8 88.6L333.2 84.0L334.5 81.4L334.7 77.5L331.9 75.5L324.8 75.6L317.8 76.8L312.8 75.1L306.2 70.5L304.2 69.4L297.3 69.1L292.3 70.0L287.2 71.7L282.1 72.3L280.3 73.1L274.3 78.9L269.6 82.5L265.4 84.3L256.5 84.8L251.9 85.9L247.2 87.8L245.9 87.7L241.1 90.3L235.4 92.6L232.3 94.9L226.8 93.4L215.8 97.5L210.5 98.0L205.0 95.8L199.9 92.1L195.1 93.7L191.7 99.0L190.1 109.8L188.1 114.6L187.5 120.4L185.0 119.4L170.3 109.0L169.3 108.6L157.3 110.5L154.3 111.3L150.5 113.4L146.5 114.4L142.8 112.8L139.2 110.4L135.8 111.1L132.2 112.8L130.9 97.1L131.6 95.1L133.9 92.3L136.1 89.9L142.0 89.1L147.8 89.9L151.8 88.8L155.4 85.7L159.1 81.2L163.3 77.7L169.0 74.8L174.5 71.6L179.4 67.0L183.9 62.1L188.1 58.3L192.7 55.3L199.6 47.9L208.9 39.6L212.4 33.5L214.5 31.8L222.5 28.4L233.0 25.8L238.0 26.0L242.9 31.3L245.6 30.5L248.2 29.2L253.7 28.4L259.2 29.3L264.7 29.3L270.1 28.6L280.6 26.8L286.1 24.7L291.5 21.9L310.6 20.0L323.8 15.5L325.8 15.7L327.9 16.8L328.1 20.2L326.4 24.0L328.1 26.2L330.6 27.6L343.0 28.1L346.5 28.8L351.7 26.3L356.6 23.2L361.6 19.0L365.1 14.3L361.9 8.5L361.3 2.1L364.0 -4.9L367.9 -10.8L372.8 -14.3L377.1 -18.3L385.9 -29.9L392.4 -39.3L394.6 -50.8L393.3 -64.4L398.8 -74.5L404.2 -76.2L414.9 -80.9L420.4 -82.2L421.2 -80.2L421.0 -77.5L412.8 -69.0L407.9 -65.6L405.1 -64.5L402.6 -62.9L401.4 -60.0L405.6 -54.9L406.8 -51.3L406.4 -47.8L406.6 -44.5L411.5 -41.1L417.0 -39.9L419.2 -39.9L421.3 -40.9L427.7 -49.4L429.0 -50.8L446.9 -57.0L455.8 -61.8L460.7 -63.0L465.2 -65.5L475.6 -75.1L479.3 -79.5L482.7 -84.3L485.6 -90.0L487.7 -96.1L490.7 -99.9L507.0 -109.0L512.2 -113.9L514.0 -116.3L515.9 -123.3L517.4 -130.4L519.3 -136.1L521.9 -141.4L525.5 -146.9L529.5 -151.8L532.0 -157.0L535.4 -169.2L537.0 -176.1L538.1 -178.5L539.9 -180.6L541.4 -183.1L542.5 -186.1L543.0 -189.0L543.8 -197.8L543.3 -204.7L540.7 -210.5L538.4 -212.2L536.0 -212.3L532.3 -211.8L529.2 -214.1L529.9 -216.2L533.1 -216.6L535.2 -217.7L536.7 -219.7L539.6 -226.0L541.4 -232.8L541.5 -235.8L539.2 -241.3L537.5 -247.9L537.5 -251.4L539.4 -255.5L542.2 -258.8L544.8 -259.6L547.5 -259.8L549.9 -261.1L552.2 -263.0L553.5 -265.0L555.6 -270.6L556.3 -273.8L555.1 -282.3L556.4 -284.6L558.2 -286.1L560.8 -285.0L563.2 -284.8L566.3 -285.1L569.0 -284.3L569.7 -282.1L571.5 -267.6L572.4 -265.6L574.6 -264.1L576.8 -264.4L578.9 -266.6L580.2 -269.6L583.0 -270.2L591.2 -267.0L594.2 -269.3L595.9 -272.8L597.7 -279.1L596.9 -284.8L594.8 -286.8L592.9 -286.5L591.1 -284.9L589.0 -284.1L576.8 -281.1L577.0 -287.4L579.6 -296.9L581.0 -299.8L583.0 -301.3L588.2 -299.6L590.6 -298.6L596.1 -294.0Z"/></g>
+            <circle cx="53.21" cy="47.79" r="4.6" fill="#ef4444" opacity=".2"/><circle cx="53.21" cy="47.79" r="3" fill="#ef4444" stroke="#eceae4" stroke-width="1"/><circle cx="51.33" cy="48.1" r="4.6" fill="#3b82f6" opacity=".2"/><circle cx="51.33" cy="48.1" r="3" fill="#3b82f6" stroke="#eceae4" stroke-width="1"/><circle cx="47.35" cy="51.08" r="4.6" fill="#10b981" opacity=".2"/><circle cx="47.35" cy="51.08" r="3" fill="#10b981" stroke="#eceae4" stroke-width="1"/><circle cx="46.79" cy="52.21" r="4.6" fill="#f59e0b" opacity=".2"/><circle cx="46.79" cy="52.21" r="3" fill="#f59e0b" stroke="#eceae4" stroke-width="1"/>
+          </svg>
+          <div class="shot-tags"><i># 식당</i><i># 카페</i><i># 산책</i><i># 재방문</i></div>
         </div>
       </div>
-      <div class="showcase-visual">
-        <img src="/image4.webp" alt="같은 날 남긴 디저트 기록 예시">
-        <div class="visual-note">
-          <img src="/Maplog_Favicon.png" alt="">
-          <div>
-            <strong>2026 겨울 나들이</strong><br>
-            <em>장소 4곳 · #카페 #디저트</em>
-          </div>
-        </div>
+
+      <div class="actions">
+        <a class="btn btn-solid" href="/map.html">카드 만들기</a>
+        <a class="btn btn-ghost" href="#privacy">계속 보기</a>
       </div>
-    </div>
+    </section>
 
-    <div class="showcase-panel">
-      <div class="showcase-copy">
-        <p class="kicker">되돌아보기</p>
-        <h3>1년의 이동을,<br>한 장으로.</h3>
-        <p>다녀온 장소 수와 나라 수, 이동 거리와 평균 별점. 월별로 어떻게 움직였는지, 어떤 곳을 가장 자주 찾았는지까지 한 장의 카드에 담깁니다. 그대로 내려받아 공유하세요.</p>
-        <div class="chip-row">
-          <span>방문 장소 수</span><span>이동 거리</span><span>평균 별점</span><span>월별 활동</span><span>이미지로 저장</span>
-        </div>
+    <!-- 5 · Privacy -->
+    <section class="slide" id="privacy" data-tone="dark" style="background-image:url('/image1.webp')">
+      <div class="copy">
+        <h2>기본은 비공개입니다</h2>
+        <p>공유 링크를 직접 만들기 전까지 기록은 나만 볼 수 있습니다.<br>
+          링크는 24시간부터 기한 없음까지 고르고, 언제든 닫을 수 있어요.</p>
       </div>
-      <div class="showcase-visual wrapped-mock">
-        <div class="wm-title">MY 2026 TRAVEL WRAPPED</div>
-        <div class="wm-stats">
-          <div class="wm-stat"><b>48</b><span>PLACES</span></div>
-          <div class="wm-stat"><b>5</b><span>COUNTRIES</span></div>
-          <div class="wm-stat"><b>2,847</b><span>KM</span></div>
-          <div class="wm-stat"><b>4.3★</b><span>AVERAGE</span></div>
-        </div>
-        <div class="wm-bars">
-          <i style="height:38%"></i><i style="height:60%"></i><i style="height:31%"></i><i style="height:82%"></i>
-          <i style="height:54%"></i><i style="height:96%"></i><i style="height:47%"></i><i style="height:69%"></i>
-          <i style="height:35%"></i><i style="height:77%"></i><i style="height:44%"></i><i style="height:88%"></i>
-        </div>
+      <div class="actions">
+        <a class="btn btn-solid" href="/map.html">내 지도 열기</a>
+        <a class="btn btn-ghost" href="#install">마지막으로</a>
       </div>
-    </div>
+    </section>
 
-    <div class="showcase-panel flip">
-      <div class="showcase-copy">
-        <p class="kicker">공유</p>
-        <h3>보여줄 만큼만,<br>보여줄 시간만.</h3>
-        <p>공유 링크는 24시간, 7일, 30일, 또는 기한 없이 만들 수 있습니다. 지금 걸어 둔 필터 그대로 보낼 수 있어서, 부산 여행만 따로 보여주는 것도 됩니다. 만들어 둔 링크는 언제든 확인하고 지울 수 있어요. 받은 사람은 마음에 든 장소를 자기 지도로 가져갈 수 있습니다.</p>
-        <div class="chip-row">
-          <span>24시간</span><span>7일</span><span>30일</span><span>기한 없음</span><span>필터째 공유</span><span>내 지도로 가져오기</span>
-        </div>
+    <!-- 6 · Install -->
+    <section class="slide" id="install" data-tone="plain">
+      <div class="copy">
+        <h2>홈 화면에 두고<br>바로 여세요</h2>
+        <p>앱처럼 설치해서 사진 찍은 자리에서 곧바로 기록합니다.<br>
+          한국어와 English, 지도 스타일 네 가지, 왼손·오른손 모드까지.</p>
       </div>
-      <div class="showcase-visual">
-        <img src="/image3.webp" alt="공유 링크로 전할 수 있는 기록 예시">
-        <div class="visual-note">
-          <img src="/pin.png" alt="">
-          <div>
-            <strong>링크가 만들어졌어요</strong><br>
-            <em>7일 뒤 자동으로 닫힙니다</em>
-          </div>
-        </div>
+      <div class="actions">
+        <a class="btn btn-solid" href="/map.html">지금 시작하기</a>
+        <a class="btn btn-ghost" href="/board.html">커뮤니티 보기</a>
       </div>
-    </div>
+    </section>
 
-  </section>
+    <footer class="foot">
+      <span class="mark">MAPLOG</span>
+      <a href="/map.html">내 지도</a>
+      <a href="/board.html">커뮤니티</a>
+      <span>지도 위에 남기는 나만의 기록</span>
+    </footer>
 
-  <section id="privacy" class="assure">
-    <div class="assure-inner">
-      <h2>내 지도는,<br>기본이 비공개입니다.</h2>
-      <p>공유 링크를 직접 만들기 전까지 내 기록은 나만 볼 수 있습니다. 어디에도 자동으로 공개되지 않습니다.</p>
-      <p>그만두고 싶을 때도 간단합니다. 계정을 삭제하면 저장한 장소와 사진, 컬렉션과 태그, 게시글과 공유 링크까지 전부 함께 사라집니다.</p>
-      <div class="assure-points">
-        <div>
-          <strong>기본 비공개</strong>
-          <span>기록은 내 계정 안에만 남습니다.</span>
-        </div>
-        <div>
-          <strong>내가 정하는 공개</strong>
-          <span>링크의 범위도, 기한도 직접 고릅니다.</span>
-        </div>
-        <div>
-          <strong>흔적 없는 탈퇴</strong>
-          <span>계정을 지우면 남는 데이터가 없습니다.</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="home-section moment-section">
-    <div class="moment-panel">
-      <div class="moment-copy">
-        <h2>이런 순간을<br>기록해 보세요.</h2>
-        <p>여행지에서 우연히 들어간 식당, 다시 가고 싶은 동네 카페, 유난히 하늘이 좋았던 하루. 대단하지 않아도 괜찮습니다. 작은 장소들이 모여 나만의 이야기가 됩니다.</p>
-      </div>
-      <div class="moment-list">
-        <span>🍜 여행지에서 만난 맛집</span>
-        <span>☕ 다시 가고 싶은 카페</span>
-        <span>📸 특별한 하루의 사진</span>
-        <span>💌 친구에게 추천하고 싶은 장소</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="specs">
-    <h2>그 밖의 것들.</h2>
-    <div class="spec-grid">
-      <div><strong>지도 스타일 4가지</strong><span>기본, 다크, 라이트, 위성 지도를 그때그때 바꿔 보세요.</span></div>
-      <div><strong>왼손 · 오른손 모드</strong><span>목록과 버튼을 잡기 편한 쪽으로 옮깁니다.</span></div>
-      <div><strong>한국어 · English</strong><span>화면 언어를 원하는 대로 바꿀 수 있어요.</span></div>
-      <div><strong>구글 계정 로그인</strong><span>이메일로 가입하거나 구글 계정으로 바로 시작합니다.</span></div>
-      <div><strong>현재 위치로 이동</strong><span>지금 있는 곳을 지도에서 한 번에 찾습니다.</span></div>
-      <div><strong>커뮤니티 보드</strong><span>후기와 팁, 궁금한 점을 다른 사람들과 나눠 보세요.</span></div>
-      <div><strong>홈 화면에 설치</strong><span>앱처럼 홈 화면에 두고 바로 열 수 있어요.</span></div>
-    </div>
-  </section>
-
-  <section class="closing">
-    <h2>오늘 다녀온 곳부터.</h2>
-    <p>기억은 흐려지지만, 지도 위에 찍어 둔 자리는 그대로 있습니다.</p>
-    <a href="/map.html" class="cta-button">내 지도 만들기</a>
-  </section>
-
-  <footer class="site-footer">
-    <div><strong>Maplog</strong> — 지도 위에 남기는 나만의 기록</div>
-    <div><a href="/map.html">내 지도</a> · <a href="/board.html">커뮤니티</a></div>
-  </footer>
-
-
-  <script>
-    // Hero preview: the same tile style and pin markup the app itself renders.
-    const heroMap = L.map('hero-map', {
-      center: [35.8562, 129.2247],
-      zoom: 14,
-      zoomControl: false,
-      attributionControl: false,
-      dragging: false,
-      touchZoom: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      keyboard: false,
-      boxZoom: false
-    });
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
-    }).addTo(heroMap);
-
-    // Same pin colours and SVG the map page uses for saved places.
-    const heroPins = [
-      { lat: 35.8612, lng: 129.2172, color: '#ef4444' },
-      { lat: 35.8548, lng: 129.2298, color: '#3b82f6' },
-      { lat: 35.8501, lng: 129.2201, color: '#10b981' },
-      { lat: 35.8585, lng: 129.2331, color: '#f59e0b' }
-    ];
-
-    heroPins.forEach(pin => {
-      L.marker([pin.lat, pin.lng], {
-        interactive: false,
-        icon: L.divIcon({
-          className: 'hero-pin',
-          html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36">
-                   <path fill="${pin.color}" d="M12 0C7.58 0 4 3.58 4 8c0 5.25 7 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
-                 </svg>`,
-          iconSize: [36, 36],
-          iconAnchor: [18, 18]
-        })
-      }).addTo(heroMap);
-    });
-
-    // Keep the saved places framed when the preview is resized.
-    const heroBounds = L.latLngBounds(heroPins.map(pin => [pin.lat, pin.lng]));
-    const fitHero = () => heroMap.fitBounds(heroBounds, { padding: [58, 58] });
-    fitHero();
-    addEventListener('resize', fitHero);
-  </script>
+  </main>
 
 </body>
 
