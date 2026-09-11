@@ -1750,7 +1750,16 @@ textarea {
 /* The place map: saved coordinates, drawn. No tiles, no joining line -
    each place stands on its own, in its own pin colour, sized by rating. */
 .place-map { position: relative; }
-.place-map svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.place-map svg { width: 100%; height: 100%; display: block; }
+
+/* A world-scale selection needs a 2:1 strip; a square column would cut off
+   half the planet. The map then takes the whole row and the text sits above. */
+.card-canvas[data-mapwide="1"] .poster-body { grid-template-columns: 1fr; gap: 2.6cqw; }
+.card-canvas[data-mapwide="1"] .poster-body .place-map { width: 100%; height: 22cqw; }
+.card-canvas[data-mapwide="1"] .collage-lower { grid-template-columns: 1fr; gap: 2.2cqw; }
+.card-canvas[data-mapwide="1"] .collage-lower .place-map { width: 100%; height: 24cqw; }
+.card-canvas[data-ratio="story"][data-mapwide="1"] .poster-body .place-map { height: 17cqw; }
+.card-canvas[data-ratio="story"][data-mapwide="1"] .collage-lower .place-map { height: 19cqw; }
 
 /* ── Layout A · Poster ───────────────────────────────────────────── */
 .poster {

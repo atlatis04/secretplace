@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css'
 import { supabase } from './supabase.js'
 import { resizeImage, getOptimizedFileName } from './src/imageResizer.js'
 import { readPhotoContext } from './src/photoExif.js'
+import { renderPlaceMap } from './src/placeMap.js'
 
 // Register the service worker so the app can be installed to a home screen.
 // Kept out of the dev server, where an intercepting worker fights HMR.
@@ -3719,52 +3720,33 @@ function cardDateRange(places) {
         : `${short(dates[0])} — ${short(dates[dates.length - 1]).slice(5)}`;
 }
 
-// Draws the saved places from their own coordinates. Deliberately no line
-// between them: a card is not an itinerary, and joining the dots implied a
-// route the user never recorded. Each place is its own mark instead - its pin
-// colour, sized by how highly it was rated.
-function placeMapSvg(places, palette) {
-    const pts = places.filter(p => Number.isFinite(p.latitude) && Number.isFinite(p.longitude));
-    if (!pts.length) return '';
+// Palettes handed to the place map, per layout ground.
+const CARD_PALETTES = {
+    poster: {
+        land: '#1b211f', edge: '#3a4742', ring: '#0c0e0d',
+        highlight: '#7dd3c0', label: '#9fb0a9', fallback: '#7dd3c0'
+    },
+    collage: {
+        land: '#dcdcd2', edge: '#b9bcae', ring: '#eceae4',
+        highlight: '#2f6357', label: '#2f3a35', fallback: '#2f6357'
+    }
+};
 
-    const lats = pts.map(p => p.latitude);
-    const lngs = pts.map(p => p.longitude);
-    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-    // A single place, or several in one spot, would divide by zero.
-    const spanLat = Math.max(maxLat - minLat, 0.01);
-    const spanLng = Math.max(maxLng - minLng, 0.01);
-    // Longitude degrees are shorter this far north; keep the shape honest.
-    const scale = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
-    const span = Math.max(spanLat, spanLng * scale);
-    const pad = 14;
-    const box = 100 - pad * 2;
-
-    const project = p => ({
-        x: pad + box / 2 + ((p.longitude - (minLng + maxLng) / 2) * scale / span) * box,
-        y: pad + box / 2 - ((p.latitude - (minLat + maxLat) / 2) / span) * box
-    });
-
-    const marks = pts.map(p => {
-        const { x, y } = project(p);
-        const r = 1.9 + (p.rating || 0) * 0.62;
-        const colour = p.color || palette.fallback;
-        return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${(r + 1.6).toFixed(2)}" fill="${colour}" opacity=".18"/>` +
-               `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r.toFixed(2)}" fill="${colour}" stroke="${palette.ring}" stroke-width="1"/>`;
-    }).join('');
-
-    const grid = [25, 50, 75].map(v =>
-        `<line x1="${v}" y1="2" x2="${v}" y2="98" stroke="${palette.grid}" stroke-width=".5"/>` +
-        `<line x1="2" y1="${v}" x2="98" y2="${v}" stroke="${palette.grid}" stroke-width=".5"/>`
-    ).join('');
-
-    return `<svg viewBox="0 0 100 100" role="img" aria-label="저장한 장소 위치">${grid}${marks}</svg>`;
+// The short name a place is known by on the map - its city, not the venue.
+function cityLabelOf(place) {
+    const first = place.address?.split(',')[0]?.trim().split(' ')[0];
+    const city = canonicalPlaceName(first);
+    return city ? translateAddress(city) : '';
 }
 
-const CARD_PALETTES = {
-    poster: { grid: 'rgba(236,231,220,.1)', ring: '#0c0e0d', fallback: '#7dd3c0' },
-    collage: { grid: 'rgba(28,30,28,.11)', ring: '#eceae4', fallback: '#2f6357' }
-};
+// Draws the map for a slot and reports whether it needs the full width.
+async function fillPlaceMap(slot, places, palette) {
+    if (!slot) return false;
+    const { svg, wide } = await renderPlaceMap(places, palette, cityLabelOf);
+    slot.innerHTML = svg;
+    slot.classList.toggle('place-map-wide', wide);
+    return wide;
+}
 
 function coordLabel(place) {
     if (!place) return '';
@@ -3780,7 +3762,7 @@ function cardPhotoPlaces(places) {
         .sort((a, b) => (b.rating || 0) - (a.rating || 0));
 }
 
-function renderPosterLayout(places, period) {
+async function renderPosterLayout(places, period) {
     const hero = cardPhotoPlaces(places)[0];
     const heroImg = document.getElementById('poster-photo');
     const heroSlot = heroImg.parentElement;
@@ -3795,8 +3777,8 @@ function renderPosterLayout(places, period) {
         heroImg.style.display = 'none';
         const map = document.createElement('div');
         map.className = 'place-map';
-        map.innerHTML = placeMapSvg(places, CARD_PALETTES.poster);
         heroSlot.insertBefore(map, heroSlot.querySelector('.poster-scrim'));
+        await fillPlaceMap(map, places, CARD_PALETTES.poster);
     }
 
     document.getElementById('poster-period').textContent = period;
@@ -3818,7 +3800,8 @@ function renderPosterLayout(places, period) {
             </li>`).join('') +
         (rest > 0 ? `<li class="more">외 ${rest}곳</li>` : '');
 
-    document.getElementById('poster-map').innerHTML = placeMapSvg(places, CARD_PALETTES.poster);
+    const wide = await fillPlaceMap(document.getElementById('poster-map'), places, CARD_PALETTES.poster);
+    document.querySelector('.card-canvas').dataset.mapwide = wide ? '1' : '0';
 
     const rated = places.filter(p => p.rating > 0);
     const avg = rated.length ? (rated.reduce((sum, p) => sum + p.rating, 0) / rated.length).toFixed(1) : null;
@@ -3829,7 +3812,7 @@ function renderPosterLayout(places, period) {
         (tags ? `<span>${escapeHtml(tags)}</span>` : '');
 }
 
-function renderCollageLayout(places, period) {
+async function renderCollageLayout(places, period) {
     document.getElementById('collage-period').textContent = period;
     document.getElementById('collage-where').textContent = cardCities(places).slice(0, 5).join(' · ');
 
@@ -3850,11 +3833,17 @@ function renderCollageLayout(places, period) {
                 <img src="${place.photo_urls[0]}" crossorigin="anonymous" alt="">
                 <figcaption>${coordLabel(place)}</figcaption>
             </figure>`).join('')
-        : `<div class="place-map">${placeMapSvg(places, CARD_PALETTES.collage)}</div>`;
+        : '<div class="place-map"></div>';
+    if (!photos.length) {
+        await fillPlaceMap(mosaic.querySelector('.place-map'), places, CARD_PALETTES.collage);
+    }
 
     const lowerMap = document.getElementById('collage-map');
-    lowerMap.innerHTML = photos.length ? placeMapSvg(places, CARD_PALETTES.collage) : '';
     lowerMap.style.display = photos.length ? '' : 'none';
+    const wide = photos.length
+        ? await fillPlaceMap(lowerMap, places, CARD_PALETTES.collage)
+        : false;
+    document.querySelector('.card-canvas').dataset.mapwide = wide ? '1' : '0';
     document.getElementById('collage-tags').innerHTML =
         cardTopTags(places, cardState.ratio === 'story' ? 5 : 4)
             .map(name => `<span># ${escapeHtml(name)}</span>`).join('');
@@ -3879,8 +3868,8 @@ async function generateShareImage() {
     canvas.dataset.ratio = cardState.ratio;
 
     const period = cardPeriodLabel(places);
-    if (cardState.layout === 'poster') renderPosterLayout(places, period);
-    else renderCollageLayout(places, period);
+    if (cardState.layout === 'poster') await renderPosterLayout(places, period);
+    else await renderCollageLayout(places, period);
 
     const width = 1080;
     const height = cardState.ratio === 'story' ? 1920 : 1080;
