@@ -148,6 +148,27 @@ export async function renderPlaceMap(places, palette, labelOf) {
         : { svg: regionSquare(pts, shapes, bounds, palette, labelOf), wide: false };
 }
 
+// Countries that straddle the date line (Russia, Fiji) have consecutive points
+// 360 degrees apart. Drawn straight, the path sweeps back across the whole map
+// as a band. Breaking the path at those jumps draws each side where it belongs.
+function antimeridianSafePath(ring, project) {
+    let d = '';
+    let penDown = false;
+    for (let i = 0; i < ring.length; i++) {
+        const [lng, lat] = ring[i];
+        const jumped = i > 0 && Math.abs(lng - ring[i - 1][0]) > 180;
+        const [x, y] = project(lng, lat);
+        if (!penDown || jumped) {
+            if (penDown) d += 'Z';
+            d += `M${x.toFixed(1)} ${y.toFixed(1)}`;
+            penDown = true;
+        } else {
+            d += `L${x.toFixed(1)} ${y.toFixed(1)}`;
+        }
+    }
+    return penDown ? d + 'Z' : '';
+}
+
 // ── World: whole planet, countries visited filled ──────────────────────
 function worldStrip(pts, countries, palette) {
     // Plate carrée, trimmed top and bottom where nobody records anything.
@@ -166,8 +187,8 @@ function worldStrip(pts, countries, palette) {
         for (const ring of country.rings) {
             // Small islands are noise at this size, unless they were visited.
             if (ring.length < 14 && !isVisited) continue;
-            const d = 'M' + ring.map(([lng, lat]) => project(lng, lat).map(v => v.toFixed(1)).join(' ')).join('L') + 'Z';
-            if (d.length < 200 && !isVisited) continue;
+            const d = antimeridianSafePath(ring, project);
+            if (!d || (d.length < 200 && !isVisited)) continue;
             if (isVisited) filled += `<path d="${d}"/>`; else plain += `<path d="${d}"/>`;
         }
     });
@@ -179,8 +200,11 @@ function worldStrip(pts, countries, palette) {
     }).join('');
 
     return `<svg viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet" role="img" aria-label="다녀온 나라">
-        <g fill="${palette.land}" stroke="${palette.edge}" stroke-width=".35">${plain}</g>
-        <g fill="${palette.highlight}" stroke="${palette.highlight}" stroke-width=".35">${filled}</g>
+        <defs><clipPath id="world-map-clip"><rect x="0" y="0" width="200" height="100"/></clipPath></defs>
+        <g clip-path="url(#world-map-clip)">
+            <g fill="${palette.land}" stroke="${palette.edge}" stroke-width=".35">${plain}</g>
+            <g fill="${palette.highlight}" stroke="${palette.highlight}" stroke-width=".35">${filled}</g>
+        </g>
         ${marks}
     </svg>`;
 }
@@ -206,9 +230,11 @@ function regionSquare(pts, shapes, bounds, palette, labelOf) {
         }
     }
 
+    // A card covering thirty places would otherwise be one solid clot of ink.
+    const sizeScale = pts.length > 18 ? 0.62 : pts.length > 8 ? 0.78 : 1;
     const marks = pts.map(p => {
         const [x, y] = project(p.longitude, p.latitude);
-        const r = 1.9 + (p.rating || 0) * 0.62;
+        const r = (1.9 + (p.rating || 0) * 0.62) * sizeScale;
         const colour = p.color || palette.fallback;
         return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${(r + 1.6).toFixed(2)}" fill="${colour}" opacity=".2"/>` +
                `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r.toFixed(2)}" fill="${colour}" stroke="${palette.ring}" stroke-width="1"/>`;
