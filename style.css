@@ -1719,6 +1719,48 @@ textarea {
 }
 
 /* Cyberpunk Share Card Styles */
+/* ── Map markers ─────────────────────────────────────────────────────
+   Two shapes for the same place, chosen by zoom. Both are anchored so the
+   point they mark is the coordinate, which the old pin was not. */
+
+.maplog-pin { background: none; border: 0; cursor: pointer; }
+
+.maplog-pin-photo .maplog-pin-face {
+    display: block;
+    box-sizing: border-box;
+    width: 46px;
+    height: 46px;
+    border: 3px solid var(--pin);
+    border-radius: 50%;
+    /* Shows through as a plain colour disc when the place has no photo. */
+    background: var(--pin);
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+}
+.maplog-pin-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.maplog-pin-tail {
+    display: block;
+    width: 0;
+    height: 0;
+    margin: -1px auto 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 9px solid var(--pin);
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .25));
+}
+
+.maplog-pin-disc {
+    display: block;
+    box-sizing: border-box;
+    width: 22px;
+    height: 22px;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    background: var(--pin);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+}
+
 /* ── Share card ──────────────────────────────────────────────────────
    Rendered off-screen at export size, then captured by html-to-image.
    Two layouts, each with its own committed palette, at two aspect ratios.

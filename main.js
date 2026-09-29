@@ -916,6 +916,8 @@ function initMap() {
     // Apply saved map style
     applyMapStyle(userSettings.mapStyle || 'default');
 
+    map.on('zoomend', refreshMarkerShapes);
+
     // 클릭 시 모달 열기
     map.on('click', (e) => {
         // UI 영역(상단 바, 좌우측 바) 클릭 시 무시
@@ -1163,17 +1165,61 @@ function renderFilteredList(placesToRender) {
 }
 
 // Add Marker
-function addMarkerToMap(place) {
-    const icon = L.divIcon({
-        className: 'custom-pin-icon',
-        html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); transform: translate(-50%, -50%); cursor: pointer;">
-                <path fill="${place.color}" d="M12 0C7.58 0 4 3.58 4 8c0 5.25 7 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
-               </svg>`,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
-    });
+// Markers change shape with the zoom. Close in, a place's own photo is the
+// clearest label there is; zoomed out it is unreadable clutter, so the same
+// places fall back to plain dots that survive overlapping.
+const PHOTO_PIN_ZOOM = 15;
 
-    const marker = L.marker([place.latitude, place.longitude], { icon });
+// Which shape the current zoom calls for. Tracked so zooming only rebuilds
+// icons when the band actually changes - re-setting them on every zoom would
+// reload every photo and flicker.
+let markerShape = null;
+
+function currentMarkerShape() {
+    return map && map.getZoom() >= PHOTO_PIN_ZOOM ? 'photo' : 'dot';
+}
+
+function markerIcon(place, shape) {
+    const colour = place.color || '#3b82f6';
+
+    if (shape === 'photo') {
+        const photo = place.photo_urls?.[0];
+        return L.divIcon({
+            className: 'maplog-pin maplog-pin-photo',
+            html: `<span class="maplog-pin-face" style="--pin:${escapeHtml(colour)}">` +
+                  (photo ? `<img src="${escapeHtml(photo)}" alt="">` : '') +
+                  `</span><span class="maplog-pin-tail" style="--pin:${escapeHtml(colour)}"></span>`,
+            iconSize: [46, 54],
+            // The tail's point is what sits on the coordinate.
+            iconAnchor: [23, 54],
+            popupAnchor: [0, -54]
+        });
+    }
+
+    return L.divIcon({
+        className: 'maplog-pin maplog-pin-dot',
+        html: `<span class="maplog-pin-disc" style="--pin:${escapeHtml(colour)}"></span>`,
+        iconSize: [22, 22],
+        // A dot marks the point itself, so it is centred on it.
+        iconAnchor: [11, 11],
+        popupAnchor: [0, -13]
+    });
+}
+
+function refreshMarkerShapes() {
+    const shape = currentMarkerShape();
+    if (shape === markerShape) return;
+    markerShape = shape;
+    markers.forEach(marker => {
+        const place = allPlaces.find(p => p.id === marker.placeId);
+        if (place) marker.setIcon(markerIcon(place, shape));
+    });
+}
+
+function addMarkerToMap(place) {
+    const shape = currentMarkerShape();
+    markerShape = shape;
+    const marker = L.marker([place.latitude, place.longitude], { icon: markerIcon(place, shape) });
     if (map) {
         marker.addTo(map);
     } else {
@@ -1220,7 +1266,9 @@ function addMarkerToMap(place) {
     `;
 
     marker.bindPopup(popupContent, {
-        offset: userSettings.handedness === 'left' ? [20, -20] : [-20, -20], // Dynamic offset based on handedness
+        // Horizontal nudge only: popupAnchor already lifts it clear of the pin.
+        // The old -20 vertical was compensating for a mis-set iconAnchor.
+        offset: userSettings.handedness === 'left' ? [20, 0] : [-20, 0],
         autoPan: true,
         autoPanPadding: userSettings.handedness === 'left' ? [80, 20] : [20, 80] // Extra padding on the side with controls
     });
