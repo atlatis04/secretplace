@@ -1737,7 +1737,20 @@ textarea {
     overflow: hidden;
     box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
 }
-.maplog-pin-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Leaflet forces `width: auto` on any img inside the marker pane
+   (.leaflet-container .leaflet-marker-pane img, two classes deep) and leaves
+   height alone. A single-class selector loses to it, which left the photo at
+   its natural aspect inside a square hole - taller than wide images spilled
+   past the right edge and the visible crop sat off to the left. Matching three
+   classes wins it back without reaching for !important. */
+.leaflet-container .maplog-pin.maplog-pin-photo img,
+.maplog-pin-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
 
 .maplog-pin-tail {
     display: block;
